@@ -73,7 +73,7 @@ namespace SongPlayHistoryContinued
             return new List<Record>();
         }
 
-        public static void SaveRecord(IDifficultyBeatmap beatmap, LevelCompletionResults result, bool submissionDisabled, bool isMultiplayer)
+        public static void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool submissionDisabled, bool isMultiplayer)
         {
             if (beatmap == null || result == null)
             {

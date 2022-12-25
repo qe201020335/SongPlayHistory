@@ -2,12 +2,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <AssemblyName>SongPlayHistoryContinued</AssemblyName>
     <AssemblyVersion>1.6.1</AssemblyVersion>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9</LangVersion>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <BeatSaberDir>$(ProjectDir)References</BeatSaberDir>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <Optimize>False</Optimize>
@@ -24,6 +25,12 @@
     <Reference Include="0Harmony">
       <HintPath>$(BeatSaberDir)\Libs\0Harmony.dll</HintPath>
       <Private>False</Private>
+    </Reference>
+    <Reference Include="BeatLeader">
+      <HintPath>$(BeatSaberDir)\Plugins\BeatLeader.dll</HintPath>
+    </Reference>
+    <Reference Include="Hive.Versioning">
+      <HintPath>$(BeatSaberDir)\Libs\Hive.Versioning.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(BeatSaberDir)\Libs\Newtonsoft.Json.dll</HintPath>

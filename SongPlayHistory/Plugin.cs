@@ -22,6 +22,7 @@ namespace SongPlayHistoryContinued
 
         private readonly Harmony _harmony;
         private bool _isPractice;
+        private bool _isReplay;
 
         [Init]
         public Plugin(Logger logger, Config config)
@@ -65,10 +66,17 @@ namespace SongPlayHistoryContinued
         {
             var practiceSettings = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData?.practiceSettings;
             _isPractice = practiceSettings != null;
+            _isReplay = Utils.IsInReplay();
         }
 
         private void OnLevelFinished(object scene, LevelFinishedEventArgs eventArgs)
         {
+            if (_isReplay)
+            {
+                Log.Info("It was a replay, ignored.");
+                return;
+            }
+            
             if (eventArgs.LevelType != LevelType.Multiplayer && eventArgs.LevelType != LevelType.SoloParty)
             {
                 return;
@@ -86,6 +94,7 @@ namespace SongPlayHistoryContinued
                 // solo
                 if (_isPractice || Gamemode.IsPartyActive)
                 {
+                    Log.Info("It was in practice or party mode, ignored.");
                     return;
                 }
                 var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene)?.difficultyBeatmap;
@@ -94,7 +103,7 @@ namespace SongPlayHistoryContinued
             
         }
 
-        private void SaveRecord(IDifficultyBeatmap beatmap, LevelCompletionResults result, bool isMultiplayer)
+        private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer)
         {
             if (result?.multipliedScore > 0)
             {
