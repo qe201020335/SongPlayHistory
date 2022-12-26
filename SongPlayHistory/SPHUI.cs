@@ -132,117 +132,112 @@ namespace SongPlayHistoryContinued
                 return;
             }
 
-            if (records?.Count > 0)
-            {
-                List<Record> truncated = records.Take(10).ToList();
-
-                var beatmapData = await beatmap.GetBeatmapDataAsync(beatmap.GetEnvironmentInfo(), playerData.playerSpecificSettings);
-                var notesCount = beatmapData.cuttableNotesCount;
-                var maxScore = ScoreModel.ComputeMaxMultipliedScoreForBeatmap(beatmapData);
-                var builder = new StringBuilder(200);
-
-                static string ConcatParam(Param param)
-                {
-                    if (param == Param.None)
-                    {
-                        return "";
-                    }
-
-                    var mods = new List<string>();
-                    if (param.HasFlag(Param.Multiplayer)) mods.Add("MULTI");
-                    if (param.HasFlag(Param.BatteryEnergy)) mods.Add("BE");
-                    if (param.HasFlag(Param.NoFail)) mods.Add("NF");
-                    if (param.HasFlag(Param.InstaFail)) mods.Add("IF");
-                    if (param.HasFlag(Param.NoObstacles)) mods.Add("NO");
-                    if (param.HasFlag(Param.NoBombs)) mods.Add("NB");
-                    if (param.HasFlag(Param.FastNotes)) mods.Add("FN");
-                    if (param.HasFlag(Param.StrictAngles)) mods.Add("SA");
-                    if (param.HasFlag(Param.DisappearingArrows)) mods.Add("DA");
-                    if (param.HasFlag(Param.SuperFastSong)) mods.Add("SFS");
-                    if (param.HasFlag(Param.FasterSong)) mods.Add("FS");
-                    if (param.HasFlag(Param.SlowerSong)) mods.Add("SS");
-                    if (param.HasFlag(Param.NoArrows)) mods.Add("NA");
-                    if (param.HasFlag(Param.GhostNotes)) mods.Add("GN");
-                    if (param.HasFlag(Param.SmallCubes)) mods.Add("SN");
-                    if (param.HasFlag(Param.ProMode)) mods.Add("PRO");
-                    if (param.HasFlag(Param.SubmissionDisabled)) mods.Add("??");
-                    if (mods.Count > 4)
-                    {
-                        mods = mods.Take(3).ToList(); // Truncate
-                        mods.Add("..");
-                    }
-
-                    return string.Join(",", mods);
-                }
-
-                static string Space(int len)
-                {
-                    var space = string.Concat(Enumerable.Repeat("_", len));
-                    return $"<size=1><color=#00000000>{space}</color></size>";
-                }
-
-                foreach (var r in truncated)
-                {
-                    var localDateTime = DateTimeOffset.FromUnixTimeMilliseconds(r.Date).LocalDateTime;
-                    
-                    /*
-                     * To get a max possible score of an unfinished level, we need _transformedBeatmapData from ResultsViewController
-                     * Then put it through ScoreModel.ComputeMaxMultipliedScoreForBeatmap
-                     * So there is no way of recovering it from the data we stored in SongPlayData.json
-                     */
-                    
-                    // var adjMaxScore = ScoreModel.MaxRawScoreForNumberOfNotes(r.LastNote);
-                    // var denom = PluginConfig.Instance.AverageAccuracy && r.LastNote > 0 ? adjMaxScore : maxScore;
-                    // var accuracy = r.RawScore / (float)denom * 100f;
-                    
-                    var levelFinished = r.LastNote < 0;
-                    var accuracy = r.RawScore / (float) maxScore * 100f;
-                    
-                    /*
-                     * One possible solution is to get the max possible score when a level finish as mentioned above,
-                     * And store it in SongPlayData.json along all other things.
-                     * Then we can just use this saved max score to calculate acc
-                     */
-
-                    var param = ConcatParam((Param)r.Param);
-                    if (param.Length == 0 && r.RawScore != r.ModifiedScore)
-                    {
-                        param = "?!";
-                    }
-                    var notesRemaining = notesCount - r.LastNote;
-
-                    builder.Append(Space(truncated.Count - truncated.IndexOf(r) - 1));
-                    builder.Append($"<size=2.5><color=#1a252bff>{localDateTime:d}</color></size>");
-                    builder.Append($"<size=3.5><color=#0f4c75ff> {r.ModifiedScore}</color></size>");
-                    if (levelFinished)
-                    {
-                        // only display acc if the record is a finished level
-                        builder.Append($"<size=3.5><color=#368cc6ff> {accuracy:0.00}%</color></size>");
-
-                    }
-                    if (param.Length > 0)
-                    {
-                        builder.Append($"<size=2><color=#1a252bff> {param}</color></size>");
-                    }
-                    if (PluginConfig.Instance.ShowFailed)
-                    {
-                        if (r.LastNote == -1)
-                            builder.Append($"<size=2.5><color=#1a252bff> cleared</color></size>");
-                        else if (r.LastNote == 0) // old record (success, fail, or practice)
-                            builder.Append($"<size=2.5><color=#584153ff> unknown</color></size>");
-                        else
-                            builder.Append($"<size=2.5><color=#ff5722ff> +{notesRemaining} notes</color></size>");
-                    }
-                    builder.Append(Space(truncated.IndexOf(r)));
-                    builder.AppendLine();
-                }
-
-                HoverHint.text = builder.ToString();
-            }
-            else
+            if (records.Count == 0)
             {
                 HoverHint.text = "No record";
+                return;
             }
+
+            var beatmapData = await beatmap.GetBeatmapDataAsync(beatmap.GetEnvironmentInfo(), playerData.playerSpecificSettings);
+            var notesCount = beatmapData.cuttableNotesCount;
+            var maxScore = ScoreModel.ComputeMaxMultipliedScoreForBeatmap(beatmapData);
+            var builder = new StringBuilder(200);
+            
+            // we can use the original v2 scoring method to calculate the adjusted max score if there is no slider or burst
+            var v2Score = !beatmapData.GetBeatmapDataItems<SliderData>(0).Any();
+
+            static string ConcatParam(Param param)
+            {
+                if (param == Param.None)
+                {
+                    return "";
+                }
+
+                var mods = new List<string>();
+                if (param.HasFlag(Param.Multiplayer)) mods.Add("MULTI");
+                if (param.HasFlag(Param.BatteryEnergy)) mods.Add("BE");
+                if (param.HasFlag(Param.NoFail)) mods.Add("NF");
+                if (param.HasFlag(Param.InstaFail)) mods.Add("IF");
+                if (param.HasFlag(Param.NoObstacles)) mods.Add("NO");
+                if (param.HasFlag(Param.NoBombs)) mods.Add("NB");
+                if (param.HasFlag(Param.FastNotes)) mods.Add("FN");
+                if (param.HasFlag(Param.StrictAngles)) mods.Add("SA");
+                if (param.HasFlag(Param.DisappearingArrows)) mods.Add("DA");
+                if (param.HasFlag(Param.SuperFastSong)) mods.Add("SFS");
+                if (param.HasFlag(Param.FasterSong)) mods.Add("FS");
+                if (param.HasFlag(Param.SlowerSong)) mods.Add("SS");
+                if (param.HasFlag(Param.NoArrows)) mods.Add("NA");
+                if (param.HasFlag(Param.GhostNotes)) mods.Add("GN");
+                if (param.HasFlag(Param.SmallCubes)) mods.Add("SN");
+                if (param.HasFlag(Param.ProMode)) mods.Add("PRO");
+                if (param.HasFlag(Param.SubmissionDisabled)) mods.Add("??");
+                if (mods.Count > 4)
+                {
+                    mods = mods.Take(3).ToList(); // Truncate
+                    mods.Add("..");
+                }
+
+                return string.Join(",", mods);
+            }
+
+            static string Space(int len)
+            {
+                var space = string.Concat(Enumerable.Repeat("_", len));
+                return $"<size=1><color=#00000000>{space}</color></size>";
+            }
+            
+            List<Record> truncated = records.Take(10).ToList();
+
+            foreach (var r in truncated)
+            {
+                var localDateTime = DateTimeOffset.FromUnixTimeMilliseconds(r.Date).LocalDateTime;
+                
+                var hasMaxScoreSaved = r.MaxRawScore != null;
+                var levelFinished = r.LastNote < 0;
+                
+                var adjMaxScore = r.MaxRawScore ?? r.CalculatedMaxRawScore ?? ScoreUtils.CalculateV2MaxScore(r.LastNote);
+                var denom = !levelFinished && PluginConfig.Instance.AverageAccuracy ? adjMaxScore : maxScore;
+                var accuracy = denom == 0 ? 100 : r.RawScore / (float)denom * 100f;
+                // only display acc if we can get the max scores with the data we have on hand
+                var shouldShowAcc = levelFinished || hasMaxScoreSaved || v2Score || !PluginConfig.Instance.AverageAccuracy;
+
+                if (v2Score && r.MaxRawScore == null) r.CalculatedMaxRawScore = adjMaxScore;
+                Plugin.Log.Debug($"Record: {r.ToShortString()}");
+
+                var param = ConcatParam((Param)r.Param);
+                if (param.Length == 0 && r.RawScore != r.ModifiedScore)
+                {
+                    param = "?!";
+                }
+                var notesRemaining = notesCount - r.LastNote;
+
+                builder.Append(Space(truncated.Count - truncated.IndexOf(r) - 1));
+                builder.Append($"<size=2.5><color=#1a252bff>{localDateTime:d}</color></size>");
+                builder.Append($"<size=3.5><color=#0f4c75ff> {r.ModifiedScore}</color></size>");
+                if (shouldShowAcc && r.RawScore <= denom)
+                {
+                    // there is a bug that a soft fail record will save total score instead of at the time of fail   
+                    // result in the the saved score much greater than the max score
+                    builder.Append($"<size=3.5><color=#368cc6ff> {accuracy:0.00}%</color></size>");
+                }
+                if (param.Length > 0)
+                {
+                    builder.Append($"<size=2><color=#1a252bff> {param}</color></size>");
+                }
+                if (PluginConfig.Instance.ShowFailed)
+                {
+                    if (r.LastNote == -1)
+                        builder.Append($"<size=2.5><color=#1a252bff> cleared</color></size>");
+                    else if (r.LastNote == 0) // old record (success, fail, or practice)
+                        builder.Append($"<size=2.5><color=#584153ff> unknown</color></size>");
+                    else
+                        builder.Append($"<size=2.5><color=#ff5722ff> +{notesRemaining} notes</color></size>");
+                }
+                builder.Append(Space(truncated.IndexOf(r)));
+                builder.AppendLine();
+            }
+
+            HoverHint.text = builder.ToString();
         }
 
         public async void SetStats(IDifficultyBeatmap beatmap, PlayerLevelStatsData stats, PlayerData playerData)

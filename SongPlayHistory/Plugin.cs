@@ -5,9 +5,9 @@ using IPA;
 using IPA.Config.Stores;
 using IPA.Logging;
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 using BS_Utils.Utilities;
+using SiraUtil.Zenject;
 using Config = IPA.Config.Config;
 
 namespace SongPlayHistoryContinued
@@ -25,7 +25,7 @@ namespace SongPlayHistoryContinued
         private bool _isReplay;
 
         [Init]
-        public Plugin(Logger logger, Config config)
+        public Plugin(Logger logger, Config config, Zenjector zenjector)
         {
             Instance = this;
             Log = logger;
@@ -35,6 +35,7 @@ namespace SongPlayHistoryContinued
             BSMLSettings.instance.AddSettingsMenu("Song Play History", $"SongPlayHistoryContinued.Settings.bsml", SettingsController.instance);
 
             SPHModel.InitializeRecords();
+            zenjector.Install<ScoreTrackerInstaller>(Location.Player);
         }
 
         [OnStart]
@@ -67,6 +68,7 @@ namespace SongPlayHistoryContinued
             var practiceSettings = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData?.practiceSettings;
             _isPractice = practiceSettings != null;
             _isReplay = Utils.IsInReplay();
+            ScoreTracker.MaxRawScore = null;
         }
 
         private void OnLevelFinished(object scene, LevelFinishedEventArgs eventArgs)
@@ -86,7 +88,7 @@ namespace SongPlayHistoryContinued
             
             if (eventArgs.LevelType == LevelType.Multiplayer)
             {
-                var beatmap = ((MultiplayerLevelScenesTransitionSetupDataSO)scene)?.difficultyBeatmap;
+                var beatmap = ((MultiplayerLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
                 SaveRecord(beatmap, result, true);
             }
             else
@@ -97,7 +99,7 @@ namespace SongPlayHistoryContinued
                     Log.Info("It was in practice or party mode, ignored.");
                     return;
                 }
-                var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene)?.difficultyBeatmap;
+                var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
                 SaveRecord(beatmap, result, false);
             }
             
@@ -109,7 +111,7 @@ namespace SongPlayHistoryContinued
             {
                 // Actually there's no way to know if any custom modifier was applied if the user failed a map.
                 var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
-                SPHModel.SaveRecord(beatmap, result, submissionDisabled, isMultiplayer);
+                SPHModel.SaveRecord(beatmap, ScoreTracker.MaxRawScore, result, submissionDisabled, isMultiplayer);
             }
         }
 

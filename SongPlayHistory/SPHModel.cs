@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using IPA.Utilities;
@@ -15,6 +16,15 @@ namespace SongPlayHistoryContinued
         public int RawScore = 0;
         public int LastNote = 0;
         public int Param = 0;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        [DefaultValue(null)]
+        public int? MaxRawScore = null;
+        [JsonIgnore]
+        public int? CalculatedMaxRawScore = null;  // only save in memory
+        public string ToShortString()
+        {
+            return $"ModifiedScore {ModifiedScore}, RawScore {RawScore}, LastNote {LastNote}, MaxRawScore {MaxRawScore ?? CalculatedMaxRawScore}";
+        }
     }
 
     [Flags]
@@ -73,7 +83,7 @@ namespace SongPlayHistoryContinued
             return new List<Record>();
         }
 
-        public static void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool submissionDisabled, bool isMultiplayer)
+        public static void SaveRecord(IDifficultyBeatmap? beatmap, int? MaxRawScore, LevelCompletionResults? result, bool submissionDisabled, bool isMultiplayer)
         {
             if (beatmap == null || result == null)
             {
@@ -121,8 +131,12 @@ namespace SongPlayHistoryContinued
                 ModifiedScore = result.modifiedScore,
                 RawScore = result.multipliedScore,
                 LastNote = cleared ? -1 : result.goodCutsCount + result.badCutsCount + result.missedCount,
-                Param = (int)param
+                Param = (int)param,
+                MaxRawScore = MaxRawScore
             };
+            
+            Plugin.Log.Info($"Saving result.");
+            Plugin.Log.Debug($"Record: {record.ToShortString()}");
 
             var beatmapCharacteristicName = beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
             var difficulty = $"{beatmap.level.levelID}___{(int)beatmap.difficulty}___{beatmapCharacteristicName}";
