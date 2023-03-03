@@ -8,12 +8,11 @@ using static UnityEngine.Object;
 
 namespace SongPlayHistoryContinued
 {
-    [HarmonyPatch(typeof(LevelListTableCell))]
-    [HarmonyPatch("SetDataFromLevelAsync", new Type[] { typeof(IPreviewBeatmapLevel), typeof(bool) })]
+    [HarmonyPatch(typeof(LevelListTableCell), nameof(LevelListTableCell.SetDataFromLevelAsync))]
     internal class SetDataFromLevelAsync
     {
-        private static Sprite _thumbsUp;
-        private static Sprite _thumbsDown;
+        private static Sprite? _thumbsUp;
+        private static Sprite? _thumbsDown;
 
         public static bool Prepare()
         {
@@ -23,7 +22,7 @@ namespace SongPlayHistoryContinued
             return SPHModel.ScanVoteData();
         }
 
-        [HarmonyAfter(new string[] { "com.kyle1413.BeatSaber.SongCore" })]
+        [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
         public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel level, bool isFavorite,
             Image ____favoritesBadgeImage,
             TextMeshProUGUI ____songBpmText)
