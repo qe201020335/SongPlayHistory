@@ -46,9 +46,6 @@
       <HintPath>$(BeatSaberDir)\Libs\0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="BeatLeader">
-      <HintPath>$(BeatSaberDir)\Plugins\BeatLeader.dll</HintPath>
-    </Reference>
     <Reference Include="Hive.Versioning">
       <HintPath>$(BeatSaberDir)\Libs\Hive.Versioning.dll</HintPath>
     </Reference>
