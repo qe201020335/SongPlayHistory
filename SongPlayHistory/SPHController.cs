@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Linq;
+using SongPlayHistory.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory
 {
     internal class SPHController : MonoBehaviour
     {

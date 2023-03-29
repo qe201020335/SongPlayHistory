@@ -1,4 +1,4 @@
-﻿namespace SongPlayHistoryContinued
+﻿namespace SongPlayHistory.Utils
 {
     internal static class ScoreUtils
     {

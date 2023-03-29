@@ -1,18 +1,14 @@
-﻿using System.Linq;
-using System.Reflection;
-using BeatLeader.Replayer;
+﻿using System.Reflection;
 using HarmonyLib;
-using IPA.Loader;
-using Hive.Versioning;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory.Utils
 {
     internal static class Utils
     {
         #region replay check (copied from HRCounter) 
         // MIT LICENSE: https://github.com/qe201020335/HRCounter/blob/master/LICENSE)
         // copied from Camera2
-         private static readonly MethodBase? ScoreSaber_playbackEnabled =
+        private static readonly MethodBase? ScoreSaber_playbackEnabled =
             AccessTools.Method("ScoreSaber.Core.ReplaySystem.HarmonyPatches.PatchHandleHMDUnmounted:Prefix");
 
         private static readonly MethodBase? GetBeatLeaderIsStartedAsReplay =

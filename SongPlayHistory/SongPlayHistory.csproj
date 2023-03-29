@@ -1,25 +1,45 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{A27CE832-9835-494F-BCD9-1D8A4A0F90ED}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <TargetFramework>net48</TargetFramework>
-    <AssemblyName>SongPlayHistoryContinued</AssemblyName>
-    <AssemblyVersion>1.6.1</AssemblyVersion>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SongPlayHistory</RootNamespace>
+    <AssemblyName>SongPlayHistory</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <LocalRefsDir Condition="Exists('..\Refs')">..\Refs</LocalRefsDir>
+    <BeatSaberDir>$(LocalRefsDir)</BeatSaberDir>
+    <AppOutputBase>$(MSBuildProjectDirectory)\</AppOutputBase>
+    <!--<PathMap>$(AppOutputBase)=X:\$(AssemblyName)\</PathMap>-->
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
     <LangVersion>9</LangVersion>
-    <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
-    <BeatSaberDir>$(ProjectDir)References</BeatSaberDir>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <Optimize>False</Optimize>
+    <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <Optimize>True</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(DefineConstants.Contains('CIBuild')) OR '$(NCrunch)' == '1'">
+    <DisableCopyToPlugins>True</DisableCopyToPlugins>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(NCrunch)' == '1'">
+    <DisableCopyToPlugins>True</DisableCopyToPlugins>
+    <DisableZipRelease>True</DisableZipRelease>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
@@ -32,6 +52,10 @@
     <Reference Include="Hive.Versioning">
       <HintPath>$(BeatSaberDir)\Libs\Hive.Versioning.dll</HintPath>
     </Reference>
+    <Reference Include="Main">
+      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Main.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(BeatSaberDir)\Libs\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
@@ -42,10 +66,6 @@
     </Reference>
     <Reference Include="BS_Utils">
       <HintPath>$(BeatSaberDir)\Plugins\BS_Utils.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="MainAssembly">
-      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Main.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="BeatmapCore">
@@ -117,64 +137,43 @@
     <Reference Include="Zenject-usage">
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Zenject-usage.dll</HintPath>
     </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CreateJunctions.bat" />
-    <None Include=".gitignore" />
+    <Compile Include="BeatSaberUI.cs" />
+    <Compile Include="Configuration\PluginConfig.cs" />
+    <Compile Include="HarmonyPatches.cs" />
+    <Compile Include="Plugin.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SPHController.cs" />
+    <Compile Include="SPHModel.cs" />
+    <Compile Include="UI\SettingsController.cs" />
+    <Compile Include="UI\SPHUI.cs" />
+    <Compile Include="Utils\ScoreTracker.cs" />
+    <Compile Include="Utils\ScoreUtils.cs" />
+    <Compile Include="Utils\Utils.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="UI\Settings.bsml" />
     <EmbeddedResource Include="manifest.json" />
     <EmbeddedResource Include="Assets\ThumbsUp.png" />
     <EmbeddedResource Include="Assets\ThumbsDown.png" />
-    <EmbeddedResource Include="Settings.bsml" />
   </ItemGroup>
   <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>$(MSBuildProjectName).UnitTest</_Parameter1>
-    </AssemblyAttribute>
+    <None Include="Directory.Build.props" Condition="Exists('Directory.Build.props')" />
+    <None Include="SongPlayHistory.csproj.user" Condition="Exists('SongPlayHistory.csproj.user')" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BeatSaberModdingTools.Tasks">
-      <Version>1.4.3</Version>
-      <IncludeAssets>build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <Version>2.0.0-beta1</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  <PropertyGroup>
-    <BuildTargetsVersion>2.0</BuildTargetsVersion>
-    <BuildTargetsModified>false</BuildTargetsModified>
-    <OutputAssemblyName>$(OutputPath)$(AssemblyName)</OutputAssemblyName>
-    <ArtifactDestination>$(OutputPath)Final</ArtifactDestination>
-    <ErrorOnMismatchedVersions Condition="'$(Configuration)' == 'Release'">True</ErrorOnMismatchedVersions>
-  </PropertyGroup>
-  <Target Name="CopyToPlugins" AfterTargets="Build" Condition="'$(NCrunch)' != '1'">
-    <Message Text="Copying $(OutputAssemblyName).dll and $(OutputAssemblyName).pdb to IPA\Pending\Plugins folder" Importance="high" />
-    <Copy SourceFiles="$(OutputAssemblyName).dll" DestinationFiles="$(BeatSaberDir)\IPA\Pending\Plugins\$(AssemblyName).dll" />
-    <Copy SourceFiles="$(OutputAssemblyName).pdb" DestinationFiles="$(BeatSaberDir)\IPA\Pending\Plugins\$(AssemblyName).pdb" />
-  </Target>
-  <Target Name="GetProjectInfo" AfterTargets="BeforeBuild" Condition="'$(BSMTTaskAssembly)' != ''">
-    <GetManifestInfo ManifestPath="manifest.json">
-      <Output TaskParameter="PluginVersion" PropertyName="PluginVersion" />
-      <Output TaskParameter="GameVersion" PropertyName="GameVersion" />
-    </GetManifestInfo>
-    <GetCommitInfo ProjectDir="$(ProjectDir)">
-      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
-    </GetCommitInfo>
-    <PropertyGroup>
-      <ArtifactName>$(AssemblyName)</ArtifactName>
-      <ArtifactName Condition="'$(PluginVersion)' != ''">$(ArtifactName)-$(PluginVersion)</ArtifactName>
-      <ArtifactName Condition="'$(GameVersion)' != ''">$(ArtifactName)-bs$(GameVersion)</ArtifactName>
-      <ArtifactName Condition="'$(CommitHash)' != '' AND '$(CommitHash)' != 'local'">$(ArtifactName)-$(CommitHash)</ArtifactName>
-    </PropertyGroup>
-  </Target>
-  <Target Name="ZipRelease" AfterTargets="Build" Condition="'$(DisableZipRelease)' != 'True' AND '$(Configuration)' == 'Release' AND '$(BSMTTaskAssembly)' != ''">
-    <PropertyGroup>
-      <DestinationDirectory>$(OutDir)zip\</DestinationDirectory>
-    </PropertyGroup>
-    <ItemGroup>
-      <OldZips Include="$(DestinationDirectory)$(AssemblyName)*.zip" />
-    </ItemGroup>
-    <Copy SourceFiles="$(OutputAssemblyName).dll" DestinationFiles="$(ArtifactDestination)\Plugins\$(AssemblyName).dll" />
-    <Message Text="PluginVersion: $(PluginVersion), AssemblyVersion: $(AssemblyVersion), GameVersion: $(GameVersion)" Importance="high" />
-    <Delete Files="@(OldZips)" TreatErrorsAsWarnings="true" ContinueOnError="true" />
-    <ZipDir SourceDirectory="$(ArtifactDestination)" DestinationFile="$(DestinationDirectory)$(ArtifactName).zip" />
-  </Target>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

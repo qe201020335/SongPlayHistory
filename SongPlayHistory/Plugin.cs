@@ -1,16 +1,19 @@
-﻿using BeatSaberMarkupLanguage.Settings;
+﻿using System;
+using System.Reflection;
+using BeatSaberMarkupLanguage.Settings;
 using BS_Utils.Gameplay;
+using BS_Utils.Utilities;
 using HarmonyLib;
 using IPA;
 using IPA.Config.Stores;
 using IPA.Logging;
-using System;
-using System.Reflection;
-using BS_Utils.Utilities;
 using SiraUtil.Zenject;
+using SongPlayHistory.Configuration;
+using SongPlayHistory.UI;
+using SongPlayHistory.Utils;
 using Config = IPA.Config.Config;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory
 {
     [Plugin(RuntimeOptions.SingleStartInit)]
     public class Plugin
@@ -32,7 +35,7 @@ namespace SongPlayHistoryContinued
             _harmony = new Harmony(HarmonyId);
 
             PluginConfig.Instance = config.Generated<PluginConfig>();
-            BSMLSettings.instance.AddSettingsMenu("Song Play History", $"SongPlayHistoryContinued.Settings.bsml", SettingsController.instance);
+            BSMLSettings.instance.AddSettingsMenu("Song Play History", $"SongPlayHistory.UI.Settings.bsml", SettingsController.instance);
 
             SPHModel.InitializeRecords();
             zenjector.Install<ScoreTrackerInstaller>(Location.Player);
@@ -67,7 +70,7 @@ namespace SongPlayHistoryContinued
         {
             var practiceSettings = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData?.practiceSettings;
             _isPractice = practiceSettings != null;
-            _isReplay = Utils.IsInReplay();
+            _isReplay = Utils.Utils.IsInReplay();
             ScoreTracker.MaxRawScore = null;
         }
 

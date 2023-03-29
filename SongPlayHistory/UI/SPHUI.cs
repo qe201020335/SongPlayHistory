@@ -1,16 +1,17 @@
-﻿using BS_Utils.Utilities;
-using HMUI;
-using IPA.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using HMUI;
+using IPA.Utilities;
+using SongPlayHistory.Configuration;
+using SongPlayHistory.Utils;
 using TMPro;
 using UnityEngine;
 using VRUIControls;
 using static UnityEngine.Object;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory.UI
 {
     internal class SPHUI
     {

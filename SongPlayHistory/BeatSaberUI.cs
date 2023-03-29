@@ -1,9 +1,9 @@
-﻿using IPA.Utilities;
+﻿using System.Linq;
 using HMUI;
-using System.Linq;
+using IPA.Utilities;
 using UnityEngine;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory
 {
     internal static class BeatSaberUI
     {

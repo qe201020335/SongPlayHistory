@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using static UnityEngine.Object;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory
 {
     [HarmonyPatch(typeof(LevelListTableCell), nameof(LevelListTableCell.SetDataFromLevelAsync))]
     internal class SetDataFromLevelAsync
@@ -16,8 +16,8 @@ namespace SongPlayHistoryContinued
 
         public static bool Prepare()
         {
-            _thumbsUp ??= LoadSpriteFromResource($"SongPlayHistoryContinued.Assets.ThumbsUp.png");
-            _thumbsDown ??= LoadSpriteFromResource($"SongPlayHistoryContinued.Assets.ThumbsDown.png");
+            _thumbsUp ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsUp.png");
+            _thumbsDown ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsDown.png");
 
             return SPHModel.ScanVoteData();
         }

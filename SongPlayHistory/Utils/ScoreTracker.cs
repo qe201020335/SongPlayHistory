@@ -1,7 +1,7 @@
 ﻿using System;
 using Zenject;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory.Utils
 {
     public class ScoreTrackerInstaller : Installer<ScoreTrackerInstaller>
     {

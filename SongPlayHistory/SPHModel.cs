@@ -1,13 +1,13 @@
-﻿using BS_Utils.Utilities;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using IPA.Utilities;
+using Newtonsoft.Json;
+using SongPlayHistory.Configuration;
 
-namespace SongPlayHistoryContinued
+namespace SongPlayHistory
 {
     internal class Record
     {
