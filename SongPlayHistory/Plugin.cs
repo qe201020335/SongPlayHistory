@@ -18,10 +18,10 @@ namespace SongPlayHistory
     [Plugin(RuntimeOptions.SingleStartInit)]
     public class Plugin
     {
-        public const string HarmonyId = "com.github.swift-kim.SongPlayHistory";
+        public const string HarmonyId = "com.github.qe201020335.SongPlayHistory";
 
-        public static Plugin Instance { get; private set; }
-        public static Logger Log { get; internal set; }
+        public static Plugin Instance { get; private set; } = null!;
+        public static Logger Log { get; internal set; } = null!;
 
         private readonly Harmony _harmony;
         private bool _isPractice;

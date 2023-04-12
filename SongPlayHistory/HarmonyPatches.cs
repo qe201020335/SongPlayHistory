@@ -23,9 +23,8 @@ namespace SongPlayHistory
         }
 
         [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
-        public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel level, bool isFavorite,
-            Image ____favoritesBadgeImage,
-            TextMeshProUGUI ____songBpmText)
+        public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel level, bool isFavorite, 
+            Image ____favoritesBadgeImage, TextMeshProUGUI ____songBpmText)
         {
             if (float.TryParse(____songBpmText?.text, out float bpm))
             {
