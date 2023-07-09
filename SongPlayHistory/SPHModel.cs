@@ -73,6 +73,41 @@ namespace SongPlayHistory
             param |= mods.proMode ? Param.ProMode : 0;
             return param;
         } 
+        
+        internal static string ToParamString(this Param param)
+        {
+            if (param == Param.None)
+            {
+                return "";
+            }
+
+            var mods = new List<string>(10); // an init capacity of 10 should be plenty in most cases
+
+            if (param.HasFlag(Param.Multiplayer)) mods.Add("MULTI");
+            if (param.HasFlag(Param.BatteryEnergy)) mods.Add("BE");
+            if (param.HasFlag(Param.NoFail)) mods.Add("NF");
+            if (param.HasFlag(Param.InstaFail)) mods.Add("IF");
+            if (param.HasFlag(Param.NoObstacles)) mods.Add("NO");
+            if (param.HasFlag(Param.NoBombs)) mods.Add("NB");
+            if (param.HasFlag(Param.FastNotes)) mods.Add("FN");
+            if (param.HasFlag(Param.StrictAngles)) mods.Add("SA");
+            if (param.HasFlag(Param.DisappearingArrows)) mods.Add("DA");
+            if (param.HasFlag(Param.SuperFastSong)) mods.Add("SFS");
+            if (param.HasFlag(Param.FasterSong)) mods.Add("FS");
+            if (param.HasFlag(Param.SlowerSong)) mods.Add("SS");
+            if (param.HasFlag(Param.NoArrows)) mods.Add("NA");
+            if (param.HasFlag(Param.GhostNotes)) mods.Add("GN");
+            if (param.HasFlag(Param.SmallCubes)) mods.Add("SN");
+            if (param.HasFlag(Param.ProMode)) mods.Add("PRO");
+            if (param.HasFlag(Param.SubmissionDisabled)) mods.Add("??");
+            if (mods.Count > 4)
+            {
+                mods = mods.Take(3).ToList(); // Truncate
+                mods.Add("..");
+            }
+
+            return string.Join(",", mods);
+        }
     }
 
     internal class UserVote

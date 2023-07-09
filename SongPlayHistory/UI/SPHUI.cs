@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using HMUI;
 using IPA.Utilities;
 using SiraUtil.Logging;
@@ -71,14 +73,23 @@ namespace SongPlayHistory.UI
         }
 
         private HoverHint? _hoverHint;
-
+        private readonly object _hoverHintLock = new();
         private HoverHint HoverHint
         {
             get
             {
-                _hoverHint ??= _levelStatsView.GetComponentsInChildren<HoverHint>().FirstOrDefault(x => x.name == "HoverArea");
-                if (_hoverHint == null)
+                lock (_hoverHintLock)
                 {
+                    if (_hoverHint == null)
+                    {
+                        _hoverHint = _levelStatsView.GetComponentsInChildren<HoverHint>().FirstOrDefault(x => x.name == "HoverArea");
+                    }
+                    
+                    if (_hoverHint != null)
+                    {
+                        return _hoverHint;
+                    }
+                    
                     _logger.Debug("HoverHint not found, making a new one");
                     var template = _levelParamsPanel.GetComponentsInChildren<RectTransform>().First(x => x.name == "NotesCount");
                     var label = UObject.Instantiate(template, _levelStatsView.transform);
@@ -92,22 +103,32 @@ namespace SongPlayHistory.UI
                     _hoverHint = label.gameObject.AddComponent<HoverHint>();
                     _hoverHint.SetField("_hoverHintController", _hoverHintController);
                     _hoverHint.text = "";
+                    
+                    return _hoverHint;
                 }
-                return _hoverHint;
             }
         }
 
-        private RectTransform? _playCount;  // TODO: Thread Safe
-        
+        private RectTransform? _playCount;
+        private readonly object _playCountLock = new();
         private RectTransform PlayCount
         {
             get
             {
-                _playCount ??= _levelStatsView.GetComponentsInChildren<RectTransform>().FirstOrDefault(x => x.name == "PlayCount");
-                if (_playCount == null)
+                lock (_playCountLock)
                 {
+                    if (_playCount == null)
+                    {
+                        _playCount = _levelStatsView.GetComponentsInChildren<RectTransform>().FirstOrDefault(x => x.name == "PlayCount");
+                    }
+
+                    if (_playCount != null)
+                    {
+                        return _playCount;
+                    }
+
                     _logger.Debug("PlayCount text not found, making a new one");
-                    
+                
                     var maxCombo = _levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "MaxCombo");
                     var highscore = _levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "Highscore");
                     var maxRank = _levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "MaxRank");
@@ -126,8 +147,9 @@ namespace SongPlayHistory.UI
                     (_playCount.transform as RectTransform)!.anchorMax = new Vector2(4 * w, .5f);
                     var title = _playCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Title");
                     title.SetText("Play Count");
+                    
+                    return _playCount;
                 }
-                return _playCount;
             }
         }
         
@@ -155,28 +177,41 @@ namespace SongPlayHistory.UI
 
             UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
         }
-        
+
+        private CancellationTokenSource? _tokenSource = new CancellationTokenSource();
+
         private void UpdateUI(IDifficultyBeatmap? beatmap)
         {
+            _tokenSource?.Cancel();
+            _tokenSource?.Dispose();
             if (beatmap == null) return;
             _logger.Info("Updating SPH UI");
-            try
+            _tokenSource = new CancellationTokenSource();
+            Task.Run(() =>
             {
-                // TODO: Cancellable
-                SetRecords(beatmap);
-                SetStats(beatmap);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to update SPH ui, {nameof(ex)}: {ex.Message}");
-                _logger.Debug(ex);
-            }
+                try
+                {
+                    SetRecords(beatmap, _tokenSource.Token);
+                    SetStats(beatmap, _tokenSource.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.Info("Update cancelled");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Failed to update SPH ui, {nameof(ex)}: {ex.Message}");
+                    _logger.Debug(ex);
+                }
+            }, _tokenSource.Token);
         }
         
-        private async void SetRecords(IDifficultyBeatmap beatmap)
+        private async void SetRecords(IDifficultyBeatmap beatmap, CancellationToken token)
         {
             var records = SPHModel.GetRecords(beatmap);
-
+            
+            token.ThrowIfCancellationRequested();
+            
             if (records.Count == 0)
             {
                 HoverHint.text = "No record";
@@ -191,50 +226,16 @@ namespace SongPlayHistory.UI
             // we can use the original v2 scoring method to calculate the adjusted max score if there is no slider or burst
             var v2Score = !beatmapData.GetBeatmapDataItems<SliderData>(0).Any();
 
-            static string ConcatParam(Param param)
-            {
-                if (param == Param.None)
-                {
-                    return "";
-                }
-
-                var mods = new List<string>(10); // an init capacity of 10 should be plenty in most cases
-
-                if (param.HasFlag(Param.Multiplayer)) mods.Add("MULTI");
-                if (param.HasFlag(Param.BatteryEnergy)) mods.Add("BE");
-                if (param.HasFlag(Param.NoFail)) mods.Add("NF");
-                if (param.HasFlag(Param.InstaFail)) mods.Add("IF");
-                if (param.HasFlag(Param.NoObstacles)) mods.Add("NO");
-                if (param.HasFlag(Param.NoBombs)) mods.Add("NB");
-                if (param.HasFlag(Param.FastNotes)) mods.Add("FN");
-                if (param.HasFlag(Param.StrictAngles)) mods.Add("SA");
-                if (param.HasFlag(Param.DisappearingArrows)) mods.Add("DA");
-                if (param.HasFlag(Param.SuperFastSong)) mods.Add("SFS");
-                if (param.HasFlag(Param.FasterSong)) mods.Add("FS");
-                if (param.HasFlag(Param.SlowerSong)) mods.Add("SS");
-                if (param.HasFlag(Param.NoArrows)) mods.Add("NA");
-                if (param.HasFlag(Param.GhostNotes)) mods.Add("GN");
-                if (param.HasFlag(Param.SmallCubes)) mods.Add("SN");
-                if (param.HasFlag(Param.ProMode)) mods.Add("PRO");
-                if (param.HasFlag(Param.SubmissionDisabled)) mods.Add("??");
-                if (mods.Count > 4)
-                {
-                    mods = mods.Take(3).ToList(); // Truncate
-                    mods.Add("..");
-                }
-
-                return string.Join(",", mods);
-            }
-
             static string Space(int len)
             {
                 var space = string.Concat(Enumerable.Repeat("_", len));
                 return $"<size=1><color=#00000000>{space}</color></size>";
             }
             
+            token.ThrowIfCancellationRequested();
             _logger.Debug($"Total number of records: {records.Count}");
             var truncated = records.Take(10).ToList();
-
+            
             foreach (var r in truncated)
             {
                 _logger.Trace($"Record: {r.ToShortString()}");
@@ -251,7 +252,7 @@ namespace SongPlayHistory.UI
 
                 if (v2Score && r.MaxRawScore == null) r.CalculatedMaxRawScore = adjMaxScore;
 
-                var param = ConcatParam((Param)r.Param);
+                var param = ((Param)r.Param).ToParamString();
                 if (param.Length == 0 && r.RawScore != r.ModifiedScore)
                 {
                     param = "?!";
@@ -283,14 +284,16 @@ namespace SongPlayHistory.UI
                 builder.Append(Space(truncated.IndexOf(r)));
                 builder.AppendLine();
             }
-
+            
+            token.ThrowIfCancellationRequested();
             HoverHint.text = builder.ToString();
         }
 
-        private void SetStats(IDifficultyBeatmap beatmap)
+        private void SetStats(IDifficultyBeatmap beatmap, CancellationToken token)
         {
             var stats = _playerDataModel.playerData.GetPlayerLevelStatsData(beatmap.level.levelID, beatmap.difficulty, beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic);
             var text = PlayCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Value");
+            if (token.IsCancellationRequested) return;
             text.SetText(stats.playCount.ToString());
         }
     }
