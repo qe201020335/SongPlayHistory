@@ -9,6 +9,7 @@ using IPA.Config.Stores;
 using IPA.Logging;
 using SiraUtil.Zenject;
 using SongPlayHistory.Configuration;
+using SongPlayHistory.Installers;
 using SongPlayHistory.UI;
 using SongPlayHistory.Utils;
 using Config = IPA.Config.Config;
@@ -35,10 +36,12 @@ namespace SongPlayHistory
             _harmony = new Harmony(HarmonyId);
 
             PluginConfig.Instance = config.Generated<PluginConfig>();
-            BSMLSettings.instance.AddSettingsMenu("Song Play History", $"SongPlayHistory.UI.Settings.bsml", SettingsController.instance);
+            BSMLSettings.instance.AddSettingsMenu("Song Play History", "SongPlayHistory.UI.Settings.bsml", SettingsController.instance);
 
             SPHModel.InitializeRecords();
+            zenjector.UseLogger();
             zenjector.Install<ScoreTrackerInstaller>(Location.Player);
+            zenjector.Install<MenuInstaller>(Location.Menu);
         }
 
         [OnStart]
@@ -46,14 +49,6 @@ namespace SongPlayHistory
         {
             BSEvents.gameSceneLoaded += OnGameSceneLoaded;
             BSEvents.LevelFinished += OnLevelFinished;
-
-            // Init after the menu scene is loaded.
-            BSEvents.lateMenuSceneLoadedFresh += (o) =>
-            {
-                Log.Info("The menu scene was loaded.");
-                _ = new UnityEngine.GameObject(nameof(SPHController)).AddComponent<SPHController>();
-            };
-
             ApplyHarmonyPatches(PluginConfig.Instance.ShowVotes);
         }
 

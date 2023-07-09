@@ -30,24 +30,49 @@ namespace SongPlayHistory
     [Flags]
     internal enum Param
     {
-        None = 0x0000,
-        BatteryEnergy = 0x0001,
-        NoFail = 0x0002,
-        InstaFail = 0x0004,
-        NoObstacles = 0x0008,
-        NoBombs = 0x0010,
-        FastNotes = 0x0020,
-        StrictAngles = 0x0040,
-        DisappearingArrows = 0x0080,
-        FasterSong = 0x0100,
-        SlowerSong = 0x0200,
-        NoArrows = 0x0400,
-        GhostNotes = 0x0800,
-        SuperFastSong = 0x1000,
-        SmallCubes = 0x2000,
-        ProMode = 0x4000,
-        SubmissionDisabled = 0x10000,
-        Multiplayer = 0x20000,
+        None = 0,
+        BatteryEnergy = 1 << 0,
+        NoFail = 1 << 1,
+        InstaFail = 1 << 2,
+        NoObstacles = 1 << 3,
+        NoBombs = 1 << 4,
+        FastNotes = 1 << 5,
+        StrictAngles = 1 << 6,
+        DisappearingArrows = 1 << 7,
+        FasterSong = 1 << 8,
+        SlowerSong = 1 << 9,
+        NoArrows = 1 << 10,
+        GhostNotes = 1 << 11,
+        SuperFastSong = 1 << 12,
+        SmallCubes = 1 << 13,
+        ProMode = 1 << 14,
+        // where is 1 << 15 (0x8000) ??
+        SubmissionDisabled = 1 << 16,
+        Multiplayer = 1 << 17,
+    }
+
+    internal static class ParamHelper
+    {
+        internal static Param ModsToParam(GameplayModifiers mods)
+        {
+            Param param = Param.None;
+            param |= mods.energyType == GameplayModifiers.EnergyType.Battery ? Param.BatteryEnergy : 0;
+            param |= mods.noFailOn0Energy ? Param.NoFail : 0;
+            param |= mods.instaFail ? Param.InstaFail : 0;
+            param |= mods.enabledObstacleType == GameplayModifiers.EnabledObstacleType.NoObstacles ? Param.NoObstacles : 0;
+            param |= mods.noBombs ? Param.NoBombs : 0;
+            param |= mods.fastNotes ? Param.FastNotes : 0;
+            param |= mods.strictAngles ? Param.StrictAngles : 0;
+            param |= mods.disappearingArrows ? Param.DisappearingArrows : 0;
+            param |= mods.songSpeed == GameplayModifiers.SongSpeed.SuperFast ? Param.SuperFastSong : 0;
+            param |= mods.songSpeed == GameplayModifiers.SongSpeed.Faster ? Param.FasterSong : 0;
+            param |= mods.songSpeed == GameplayModifiers.SongSpeed.Slower ? Param.SlowerSong : 0;
+            param |= mods.noArrows ? Param.NoArrows : 0;
+            param |= mods.ghostNotes ? Param.GhostNotes : 0;
+            param |= mods.smallCubes ? Param.SmallCubes : 0;
+            param |= mods.proMode ? Param.ProMode : 0;
+            return param;
+        } 
     }
 
     internal class UserVote
@@ -99,29 +124,8 @@ namespace SongPlayHistory
             // We now keep failed records.
             var cleared = result.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared;
 
-            static Param ModsToParam(GameplayModifiers mods)
-            {
-                Param param = Param.None;
-                param |= mods.energyType == GameplayModifiers.EnergyType.Battery ? Param.BatteryEnergy : 0;
-                param |= mods.noFailOn0Energy ? Param.NoFail : 0;
-                param |= mods.instaFail ? Param.InstaFail : 0;
-                param |= mods.enabledObstacleType == GameplayModifiers.EnabledObstacleType.NoObstacles ? Param.NoObstacles : 0;
-                param |= mods.noBombs ? Param.NoBombs : 0;
-                param |= mods.fastNotes ? Param.FastNotes : 0;
-                param |= mods.strictAngles ? Param.StrictAngles : 0;
-                param |= mods.disappearingArrows ? Param.DisappearingArrows : 0;
-                param |= mods.songSpeed == GameplayModifiers.SongSpeed.SuperFast ? Param.SuperFastSong : 0;
-                param |= mods.songSpeed == GameplayModifiers.SongSpeed.Faster ? Param.FasterSong : 0;
-                param |= mods.songSpeed == GameplayModifiers.SongSpeed.Slower ? Param.SlowerSong : 0;
-                param |= mods.noArrows ? Param.NoArrows : 0;
-                param |= mods.ghostNotes ? Param.GhostNotes : 0;
-                param |= mods.smallCubes ? Param.SmallCubes : 0;
-                param |= mods.proMode ? Param.ProMode : 0;
-                return param;
-            }
-
             // If submissionDisabled = true, we assume custom gameplay modifiers are applied.
-            var param = ModsToParam(result.gameplayModifiers);
+            var param = ParamHelper.ModsToParam(result.gameplayModifiers);
             param |= submissionDisabled ? Param.SubmissionDisabled : 0;
             param |= isMultiplayer ? Param.Multiplayer : 0;
 
@@ -151,32 +155,6 @@ namespace SongPlayHistory
             SaveRecordsToFile();
 
             Plugin.Log?.Info($"Saved a new record {difficulty} ({result.modifiedScore}).");
-        }
-
-        public static PlayerLevelStatsData GetPlayerStats(IDifficultyBeatmap beatmap)
-        {
-            if (!BeatSaberUI.IsValid)
-            {
-                return null;
-            }
-            var playerDataModel = BeatSaberUI.LevelDetailViewController.GetField<PlayerDataModel, StandardLevelDetailViewController>("_playerDataModel");
-            var statsList = playerDataModel.playerData.levelsStatsData;
-            var stats = statsList?.FirstOrDefault(x => x.levelID == beatmap.level.levelID && x.difficulty == beatmap.difficulty);
-            if (stats == null)
-            {
-                Plugin.Log?.Warn($"{nameof(PlayerLevelStatsData)} not found for {beatmap.level.levelID} - {beatmap.difficulty}.");
-            }
-            return stats;
-        }
-        
-        public static PlayerData GetPlayerData()
-        {
-            if (!BeatSaberUI.IsValid)
-            {
-                return null;
-            }
-            var playerDataModel = BeatSaberUI.LevelDetailViewController.GetField<PlayerDataModel, StandardLevelDetailViewController>("_playerDataModel");
-            return playerDataModel.playerData;
         }
 
         public static bool ScanVoteData()

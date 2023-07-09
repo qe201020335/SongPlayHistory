@@ -3,15 +3,6 @@ using Zenject;
 
 namespace SongPlayHistory.Utils
 {
-    public class ScoreTrackerInstaller : Installer<ScoreTrackerInstaller>
-    {
-        public override void InstallBindings()
-        {
-            Plugin.Log.Warn("Binding ScoreTracker");
-            Container.BindInterfacesTo<ScoreTracker>().AsSingle().NonLazy();
-        }
-    }
-    
     public class ScoreTracker : IInitializable, IDisposable
     {
         internal static int? MaxRawScore = null;
