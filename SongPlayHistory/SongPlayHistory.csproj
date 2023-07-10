@@ -146,9 +146,11 @@
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="Installers\ScoreTrackerInstaller.cs" />
     <Compile Include="Installers\MenuInstaller.cs" />
+    <Compile Include="Model\Record.cs" />
+    <Compile Include="Model\UserVote.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SPHModel.cs" />
+    <Compile Include="RecordsManager.cs" />
     <Compile Include="UI\SettingsController.cs" />
     <Compile Include="UI\SPHUI.cs" />
     <Compile Include="Utils\LayoutUtils.cs" />

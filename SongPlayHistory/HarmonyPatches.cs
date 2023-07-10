@@ -19,7 +19,7 @@ namespace SongPlayHistory
             _thumbsUp ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsUp.png");
             _thumbsDown ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsDown.png");
 
-            return SPHModel.ScanVoteData();
+            return RecordsManager.ScanVoteData();
         }
 
         [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
@@ -50,7 +50,7 @@ namespace SongPlayHistory
             }
             voteIcon.enabled = false;
 
-            if (!isFavorite && SPHModel.Votes.TryGetValue(level.levelID.Replace("custom_level_", "").ToLower(), out var vote))
+            if (!isFavorite && RecordsManager.Votes.TryGetValue(level.levelID.Replace("custom_level_", "").ToLower(), out var vote))
             {
                 voteIcon.sprite = vote.voteType == "Upvote" ? _thumbsUp : _thumbsDown;
                 voteIcon.enabled = true;

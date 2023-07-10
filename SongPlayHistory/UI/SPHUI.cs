@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -8,6 +7,7 @@ using HMUI;
 using IPA.Utilities;
 using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
+using SongPlayHistory.Model;
 using SongPlayHistory.Utils;
 using TMPro;
 using UnityEngine;
@@ -172,7 +172,7 @@ namespace SongPlayHistory.UI
         {
             // The user may have voted on this map.
             // TODO: VoteTracker
-            SPHModel.ScanVoteData();
+            RecordsManager.ScanVoteData();
             _tableView.RefreshCellsContent();
 
             UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
@@ -208,7 +208,7 @@ namespace SongPlayHistory.UI
         
         private async void SetRecords(IDifficultyBeatmap beatmap, CancellationToken token)
         {
-            var records = SPHModel.GetRecords(beatmap);
+            var records = RecordsManager.GetRecords(beatmap);
             
             token.ThrowIfCancellationRequested();
             

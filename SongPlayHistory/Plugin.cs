@@ -38,7 +38,7 @@ namespace SongPlayHistory
             PluginConfig.Instance = config.Generated<PluginConfig>();
             BSMLSettings.instance.AddSettingsMenu("Song Play History", "SongPlayHistory.UI.Settings.bsml", SettingsController.instance);
 
-            SPHModel.InitializeRecords();
+            RecordsManager.InitializeRecords();
             zenjector.UseLogger();
             zenjector.Install<ScoreTrackerInstaller>(Location.Player);
             zenjector.Install<MenuInstaller>(Location.Menu);
@@ -58,7 +58,7 @@ namespace SongPlayHistory
             BSEvents.gameSceneLoaded -= OnGameSceneLoaded;
             BSEvents.LevelFinished -= OnLevelFinished;
 
-            SPHModel.BackupRecords();
+            RecordsManager.BackupRecords();
         }
 
         private void OnGameSceneLoaded()
@@ -109,7 +109,7 @@ namespace SongPlayHistory
             {
                 // Actually there's no way to know if any custom modifier was applied if the user failed a map.
                 var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
-                SPHModel.SaveRecord(beatmap, ScoreTracker.MaxRawScore, result, submissionDisabled, isMultiplayer);
+                RecordsManager.SaveRecord(beatmap, ScoreTracker.MaxRawScore, result, submissionDisabled, isMultiplayer);
             }
         }
 
