@@ -31,6 +31,12 @@ namespace SongPlayHistory.UI
         private readonly SiraLog _logger = null!;
 
         [Inject]
+        private readonly UserVoteTracker _voteTracker = null!;
+
+        [Inject]
+        private readonly RecordsManager _recordsManager = null!;
+
+        [Inject]
         private readonly PlayerDataModel _playerDataModel = null!;
 
         [Inject]
@@ -171,8 +177,7 @@ namespace SongPlayHistory.UI
         private void OnPlayResultDismiss(ResultsViewController _)
         {
             // The user may have voted on this map.
-            // TODO: VoteTracker
-            RecordsManager.ScanVoteData();
+            _voteTracker.ScanVoteData();
             _tableView.RefreshCellsContent();
 
             UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
@@ -208,7 +213,7 @@ namespace SongPlayHistory.UI
         
         private async void SetRecords(IDifficultyBeatmap beatmap, CancellationToken token)
         {
-            var records = RecordsManager.GetRecords(beatmap);
+            var records = _recordsManager.GetRecords(beatmap);
             
             token.ThrowIfCancellationRequested();
             

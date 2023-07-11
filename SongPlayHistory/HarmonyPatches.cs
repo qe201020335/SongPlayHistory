@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using HarmonyLib;
+using SiraUtil.Affinity;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,7 +21,7 @@ namespace SongPlayHistory
             _thumbsUp ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsUp.png");
             _thumbsDown ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsDown.png");
 
-            return RecordsManager.ScanVoteData();
+            return _thumbsUp != null && _thumbsDown != null;
         }
 
         [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
@@ -31,7 +33,7 @@ namespace SongPlayHistory
                 ____songBpmText.text = bpm.ToString("0");
             }
 
-            Image voteIcon = null;
+            Image? voteIcon = null;
             foreach (var image in __instance.GetComponentsInChildren<Image>())
             {
                 // For performance reason, avoid using Linq.
@@ -48,12 +50,15 @@ namespace SongPlayHistory
                 voteIcon.rectTransform.sizeDelta = new Vector2(2.5f, 2.5f);
                 voteIcon.color = new Color(1f, 1f, 1f, 0.3f);
             }
-            voteIcon.enabled = false;
 
-            if (!isFavorite && RecordsManager.Votes.TryGetValue(level.levelID.Replace("custom_level_", "").ToLower(), out var vote))
+            if (!isFavorite && UserVoteTracker.TryGetVote(level, out var vote))
             {
-                voteIcon.sprite = vote.voteType == "Upvote" ? _thumbsUp : _thumbsDown;
+                voteIcon.sprite = vote == VoteType.UpVote ? _thumbsUp : _thumbsDown;
                 voteIcon.enabled = true;
+            }
+            else
+            {
+                voteIcon.enabled = false;
             }
         }
 
@@ -68,16 +73,16 @@ namespace SongPlayHistory
             }
         }
 
-        private static Sprite LoadSpriteFromResource(string resourcePath)
+        private static Sprite? LoadSpriteFromResource(string resourcePath)
         {
             try
             {
-                using var stream = Assembly.GetCallingAssembly().GetManifestResourceStream(resourcePath);
-                var resource = new byte[stream.Length];
-                stream.Read(resource, 0, (int)stream.Length);
-
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourcePath);
+                using var ms = new MemoryStream();
+                stream!.CopyTo(ms);
+                
                 var texture = new Texture2D(2, 2);
-                texture.LoadImage(resource);
+                texture.LoadImage(ms.ToArray());
 
                 var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0, 0));
                 return sprite;

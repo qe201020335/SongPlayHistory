@@ -36,7 +36,7 @@ namespace SongPlayHistory.UI
         [UIAction("#apply")]
         public void OnApply()
         {
-            Plugin.Instance?.ApplyHarmonyPatches(ShowVotes);
+            Plugin.Instance.ApplyHarmonyPatches(ShowVotes);
         }
     }
 }

@@ -2,23 +2,137 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using BS_Utils.Gameplay;
+using BS_Utils.Utilities;
+using ModestTree;
 using Newtonsoft.Json;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
+using SongPlayHistory.Utils;
+using Zenject;
 
 namespace SongPlayHistory
 {
-    internal static class RecordsManager
+    internal class RecordsManager: IInitializable, IDisposable
     {
-        public static readonly string DataFile = Path.Combine(Environment.CurrentDirectory, "UserData", "SongPlayData.json");
-        public static readonly string VoteFile = Path.Combine(Environment.CurrentDirectory, "UserData", "votedSongs.json");
+        public readonly string DataFile = Path.Combine(Environment.CurrentDirectory, "UserData", "SongPlayData.json");
 
-        public static Dictionary<string, IList<Record>> Records { get; set; } = new Dictionary<string, IList<Record>>();
-        public static Dictionary<string, UserVote> Votes { get; private set; } = new Dictionary<string, UserVote>();
+        public Dictionary<string, IList<Record>> Records { get; set; } = new Dictionary<string, IList<Record>>();
 
-        private static DateTime _voteLastWritten;
+        public void Initialize()
+        {
+            // We don't anymore support migrating old records from a config file.
+            if (!File.Exists(DataFile))
+            {
+                return;
+            }
 
-        public static List<Record> GetRecords(IDifficultyBeatmap beatmap)
+            // Read records from a data file.
+            var text = File.ReadAllText(DataFile);
+            try
+            {
+                Records = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
+                if (Records == null)
+                {
+                    throw new JsonReaderException("Unable to deserialize an empty JSON string.");
+                }
+            }
+            catch (JsonException ex)
+            {
+                // The data file is corrupted.
+                Plugin.Log?.Error(ex.ToString());
+
+                // Try to restore from a backup.
+                var backup = new FileInfo(Path.ChangeExtension(DataFile, ".bak"));
+                if (backup.Exists && backup.Length > 0)
+                {
+                    Plugin.Log?.Info("Restoring from a backup...");
+                    text = File.ReadAllText(backup.FullName);
+
+                    Records = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
+                    if (Records == null)
+                    {
+                        // Fail hard to prevent overwriting any previous data or breaking the game.
+                        throw new Exception("Failed to restore data.");
+                    }
+                }
+                else
+                {
+                    // There's nothing more we can try. Overwrite the file.
+                    Records = new Dictionary<string, IList<Record>>();
+                }
+                SaveRecordsToFile();
+            }
+            
+            BSEvents.gameSceneLoaded -= OnGameSceneLoaded;
+            BSEvents.gameSceneLoaded += OnGameSceneLoaded;
+            BSEvents.LevelFinished -= OnLevelFinished;
+            BSEvents.LevelFinished += OnLevelFinished;
+        }
+
+        public void Dispose()
+        {
+            BSEvents.gameSceneLoaded -= OnGameSceneLoaded;
+            BSEvents.LevelFinished -= OnLevelFinished;
+            SaveRecordsToFile();
+            BackupRecords();
+        }
+        
+        private bool _isPractice;
+        private bool _isReplay;
+        
+        private void OnGameSceneLoaded()
+        {
+            var practiceSettings = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData?.practiceSettings;
+            _isPractice = practiceSettings != null;
+            _isReplay = Utils.Utils.IsInReplay();
+            ScoreTracker.MaxRawScore = null;
+        }
+
+        private void OnLevelFinished(object scene, LevelFinishedEventArgs eventArgs)
+        {
+            if (_isReplay)
+            {
+                Log.Info("It was a replay, ignored.");
+                return;
+            }
+            
+            if (eventArgs.LevelType != LevelType.Multiplayer && eventArgs.LevelType != LevelType.SoloParty)
+            {
+                return;
+            }
+
+            var result = ((LevelFinishedWithResultsEventArgs)eventArgs).CompletionResults;
+            
+            if (eventArgs.LevelType == LevelType.Multiplayer)
+            {
+                var beatmap = ((MultiplayerLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
+                SaveRecord(beatmap, result, true);
+            }
+            else
+            {
+                // solo
+                if (_isPractice || Gamemode.IsPartyActive)
+                {
+                    Log.Info("It was in practice or party mode, ignored.");
+                    return;
+                }
+                var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
+                SaveRecord(beatmap, result, false);
+            }
+        }
+
+        private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer)
+        {
+            if (result?.multipliedScore > 0)
+            {
+                // Actually there's no way to know if any custom modifier was applied if the user failed a map.
+                var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
+                SaveRecord(beatmap, ScoreTracker.MaxRawScore, result, submissionDisabled, isMultiplayer);
+            }
+        }
+
+        public List<Record> GetRecords(IDifficultyBeatmap beatmap)
         {
             var config = PluginConfig.Instance;
             var beatmapCharacteristicName = beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
@@ -35,7 +149,7 @@ namespace SongPlayHistory
             return new List<Record>();
         }
 
-        public static void SaveRecord(IDifficultyBeatmap? beatmap, int? MaxRawScore, LevelCompletionResults? result, bool submissionDisabled, bool isMultiplayer)
+        private void SaveRecord(IDifficultyBeatmap? beatmap, int? MaxRawScore, LevelCompletionResults? result, bool submissionDisabled, bool isMultiplayer)
         {
             if (beatmap == null || result == null)
             {
@@ -84,37 +198,7 @@ namespace SongPlayHistory
             Plugin.Log?.Info($"Saved a new record {difficulty} ({result.modifiedScore}).");
         }
 
-        public static bool ScanVoteData()
-        {
-            Plugin.Log?.Info($"Scanning {Path.GetFileName(VoteFile)}...");
-
-            if (!File.Exists(VoteFile))
-            {
-                Plugin.Log?.Warn("The file doesn't exist.");
-                return false;
-            }
-            try
-            {
-                if (_voteLastWritten != File.GetLastWriteTime(VoteFile))
-                {
-                    _voteLastWritten = File.GetLastWriteTime(VoteFile);
-
-                    var text = File.ReadAllText(VoteFile);
-                    Votes = JsonConvert.DeserializeObject<Dictionary<string, UserVote>>(text) ?? new Dictionary<string, UserVote>();
-
-                    Plugin.Log?.Info("Update done.");
-                }
-
-                return true;
-            }
-            catch (Exception ex) // IOException, JsonException
-            {
-                Plugin.Log?.Error(ex.ToString());
-                return false;
-            }
-        }
-
-        internal static void SaveRecordsToFile()
+        private void SaveRecordsToFile()
         {
             try
             {
@@ -130,53 +214,7 @@ namespace SongPlayHistory
             }
         }
 
-        public static void InitializeRecords()
-        {
-            // We don't anymore support migrating old records from a config file.
-            if (!File.Exists(DataFile))
-            {
-                return;
-            }
-
-            // Read records from a data file.
-            var text = File.ReadAllText(DataFile);
-            try
-            {
-                Records = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
-                if (Records == null)
-                {
-                    throw new JsonReaderException("Unable to deserialize an empty JSON string.");
-                }
-            }
-            catch (JsonException ex)
-            {
-                // The data file is corrupted.
-                Plugin.Log?.Error(ex.ToString());
-
-                // Try to restore from a backup.
-                var backup = new FileInfo(Path.ChangeExtension(DataFile, ".bak"));
-                if (backup.Exists && backup.Length > 0)
-                {
-                    Plugin.Log?.Info("Restoring from a backup...");
-                    text = File.ReadAllText(backup.FullName);
-
-                    Records = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
-                    if (Records == null)
-                    {
-                        // Fail hard to prevent overwriting any previous data or breaking the game.
-                        throw new Exception("Failed to restore data.");
-                    }
-                }
-                else
-                {
-                    // There's nothing more we can try. Overwrite the file.
-                    Records = new Dictionary<string, IList<Record>>();
-                }
-                SaveRecordsToFile();
-            }
-        }
-
-        public static void BackupRecords()
+        private void BackupRecords()
         {
             if (!File.Exists(DataFile))
             {
