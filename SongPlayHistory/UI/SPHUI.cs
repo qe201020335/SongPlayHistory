@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using HMUI;
 using IPA.Utilities;
 using SiraUtil.Logging;
@@ -183,39 +181,25 @@ namespace SongPlayHistory.UI
             UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
         }
 
-        private CancellationTokenSource? _tokenSource = new CancellationTokenSource();
-
         private void UpdateUI(IDifficultyBeatmap? beatmap)
         {
-            _tokenSource?.Cancel();
-            _tokenSource?.Dispose();
             if (beatmap == null) return;
             _logger.Info("Updating SPH UI");
-            _tokenSource = new CancellationTokenSource();
-            Task.Run(() =>
+            try
             {
-                try
-                {
-                    SetRecords(beatmap, _tokenSource.Token);
-                    SetStats(beatmap, _tokenSource.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.Info("Update cancelled");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error($"Failed to update SPH ui, {nameof(ex)}: {ex.Message}");
-                    _logger.Debug(ex);
-                }
-            }, _tokenSource.Token);
+                SetRecords(beatmap);
+                SetStats(beatmap);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Failed to update SPH ui, {nameof(ex)}: {ex.Message}");
+                _logger.Debug(ex);
+            }
         }
         
-        private async void SetRecords(IDifficultyBeatmap beatmap, CancellationToken token)
+        private async void SetRecords(IDifficultyBeatmap beatmap)
         {
             var records = _recordsManager.GetRecords(beatmap);
-            
-            token.ThrowIfCancellationRequested();
             
             if (records.Count == 0)
             {
@@ -237,7 +221,6 @@ namespace SongPlayHistory.UI
                 return $"<size=1><color=#00000000>{space}</color></size>";
             }
             
-            token.ThrowIfCancellationRequested();
             _logger.Debug($"Total number of records: {records.Count}");
             var truncated = records.Take(10).ToList();
             
@@ -290,15 +273,13 @@ namespace SongPlayHistory.UI
                 builder.AppendLine();
             }
             
-            token.ThrowIfCancellationRequested();
             HoverHint.text = builder.ToString();
         }
 
-        private void SetStats(IDifficultyBeatmap beatmap, CancellationToken token)
+        private void SetStats(IDifficultyBeatmap beatmap)
         {
             var stats = _playerDataModel.playerData.GetPlayerLevelStatsData(beatmap.level.levelID, beatmap.difficulty, beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic);
             var text = PlayCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Value");
-            if (token.IsCancellationRequested) return;
             text.SetText(stats.playCount.ToString());
         }
     }
