@@ -3,6 +3,8 @@ using System.IO;
 using System.Reflection;
 using HarmonyLib;
 using SongPlayHistory.Configuration;
+using SongPlayHistory.Model;
+using SongPlayHistory.VoteTracker;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -53,9 +55,9 @@ namespace SongPlayHistory
                 voteIcon.color = new Color(1f, 1f, 1f, 0.3f);
             }
 
-            if (!isFavorite && UserVoteTracker.TryGetVote(level, out var vote))
+            if (!isFavorite && InMenuVoteTrackingHelper.Instance?.TryGetVote(level, out var vote) == true)
             {
-                voteIcon.sprite = vote == VoteType.UpVote ? _thumbsUp : _thumbsDown;
+                voteIcon.sprite = vote == VoteType.Upvote ? _thumbsUp : _thumbsDown;
                 voteIcon.enabled = true;
             }
             else

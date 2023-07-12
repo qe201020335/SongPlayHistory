@@ -1,5 +1,5 @@
-﻿using SongPlayHistory.AffinityPatches;
-using SongPlayHistory.UI;
+﻿using SongPlayHistory.UI;
+using SongPlayHistory.VoteTracker;
 using Zenject;
 
 namespace SongPlayHistory.Installers
@@ -9,6 +9,7 @@ namespace SongPlayHistory.Installers
         public override void InstallBindings()
         {
             Container.BindInterfacesTo<SPHUI>().AsSingle();
+            Container.BindInterfacesAndSelfTo<InMenuVoteTrackingHelper>().AsSingle();
         }
     }
 }

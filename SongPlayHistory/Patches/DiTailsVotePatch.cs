@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using IPA.Loader;
-using SiraUtil.Affinity;
-using Zenject;
+using SongPlayHistory.Model;
+using SongPlayHistory.VoteTracker;
 
-namespace SongPlayHistory.AffinityPatches
+namespace SongPlayHistory.Patches
 {
     [HarmonyPatch]
     internal class DiTailsVotePatch
@@ -17,6 +16,8 @@ namespace SongPlayHistory.AffinityPatches
         
         private static readonly Lazy<MethodBase?> _method = 
             new(() => _ditails.Value?.GetMethod("Vote", BindingFlags.Instance | BindingFlags.NonPublic));
+        
+        // TODO AccessTools.Property(AccessTools.TypeByName("BeatLeader.Replayer.ReplayerLauncher"), "IsStartedAsReplay")?.GetGetMethod(false)
 
         [HarmonyTargetMethod]
         private static MethodBase CalculateMethod()
@@ -35,8 +36,9 @@ namespace SongPlayHistory.AffinityPatches
         public static void Prefix(bool upvote, IDifficultyBeatmap? ____activeBeatmap)
         {
             if (____activeBeatmap == null) return;
-            Plugin.Log.Debug($"DiTails voted {upvote} to {____activeBeatmap.level.levelID}");
-            UserVoteTracker.Vote(____activeBeatmap.level, upvote ? VoteType.UpVote : VoteType.DownVote);
+            var vote = upvote ? VoteType.Upvote : VoteType.Downvote;
+            Plugin.Log.Debug($"DiTails voted {vote} to {____activeBeatmap.level.levelID}");
+            InMenuVoteTrackingHelper.Instance?.Vote(____activeBeatmap.level, vote);
         }
     }
 }

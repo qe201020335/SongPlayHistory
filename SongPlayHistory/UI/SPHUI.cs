@@ -7,6 +7,7 @@ using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
 using SongPlayHistory.Utils;
+using SongPlayHistory.VoteTracker;
 using TMPro;
 using UnityEngine;
 using Zenject;
@@ -23,13 +24,8 @@ namespace SongPlayHistory.UI
         
         private readonly StandardLevelDetailViewController _levelDetailViewController;
 
-        private readonly TableView _tableView;
-
         [Inject]
         private readonly SiraLog _logger = null!;
-
-        [Inject]
-        private readonly UserVoteTracker _voteTracker = null!;
 
         [Inject]
         private readonly RecordsManager _recordsManager = null!;
@@ -43,16 +39,13 @@ namespace SongPlayHistory.UI
         [Inject]
         private readonly ResultsViewController _resultsViewController = null!;
 
-        public SPHUI(PlatformLeaderboardViewController leaderboardViewController, StandardLevelDetailViewController levelDetailViewController, LevelCollectionViewController levelCollectionViewController)
+        public SPHUI(PlatformLeaderboardViewController leaderboardViewController, StandardLevelDetailViewController levelDetailViewController)
         {
             _levelStatsView = leaderboardViewController.GetField<LevelStatsView, PlatformLeaderboardViewController>("_levelStatsView");
             
             _levelDetailViewController = levelDetailViewController;
             var levelDetailView = levelDetailViewController.GetField<StandardLevelDetailView, StandardLevelDetailViewController>("_standardLevelDetailView");
             _levelParamsPanel = levelDetailView.GetField<LevelParamsPanel, StandardLevelDetailView>("_levelParamsPanel");
-            
-            var levelCollectionTableView = levelCollectionViewController.GetField<LevelCollectionTableView, LevelCollectionViewController>("_levelCollectionTableView");
-            _tableView = levelCollectionTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
         }
         
         
@@ -174,10 +167,6 @@ namespace SongPlayHistory.UI
 
         private void OnPlayResultDismiss(ResultsViewController _)
         {
-            // The user may have voted on this map.
-            _voteTracker.ScanVoteData();
-            _tableView.RefreshCellsContent();
-
             UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
         }
 

@@ -11,6 +11,7 @@ using SiraUtil.Zenject;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Installers;
 using SongPlayHistory.UI;
+using SongPlayHistory.VoteTracker;
 using Config = IPA.Config.Config;
 
 namespace SongPlayHistory
@@ -19,15 +20,14 @@ namespace SongPlayHistory
     public class Plugin
     {
         private const string HarmonyId = "com.github.qe201020335.SongPlayHistory";
-        private const string BeatSaverVotingId = "BeatSaverVoting";
+        internal const string BeatSaverVotingId = "BeatSaverVoting";
         
         public static Plugin Instance { get; private set; } = null!;
-        public static Logger Log { get; internal set; } = null!;
-
+        internal static Logger Log { get; private set; } = null!;
+        
         private readonly Harmony _harmony;
 
         internal bool BeatSaverVotingInstalled { get; private set; }
-
 
         [Init]
         public Plugin(Logger logger, Config config, Zenjector zenjector)

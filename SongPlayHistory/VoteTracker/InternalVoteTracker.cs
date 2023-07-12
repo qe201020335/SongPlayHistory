@@ -1,18 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using HMUI;
-using IPA.Utilities;
 using Newtonsoft.Json;
 using SongPlayHistory.Model;
 using Zenject;
 
-namespace SongPlayHistory
+namespace SongPlayHistory.VoteTracker
 {
-    public class UserVoteTracker: IInitializable, IDisposable
+    internal class InternalVoteTracker: IVoteTracker, IInitializable, IDisposable
     {
 
-        internal static UserVoteTracker? Instance;
+        internal static InternalVoteTracker? Instance;
 
         private static readonly object _instanceLock = new();
         
@@ -76,24 +74,19 @@ namespace SongPlayHistory
             }
         }
 
-        internal static bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
+        public bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
         {
             if (Votes.TryGetValue(level.levelID.Replace("custom_level_", "").ToLower(), out var vote))
             {
-                voteType = vote.voteType == "Upvote" ? VoteType.UpVote : VoteType.DownVote;
+                voteType = vote.VoteType == "Upvote" ? VoteType.Upvote : VoteType.Downvote;
                 return true;
             }
 
-            voteType = VoteType.DownVote;
+            voteType = VoteType.Downvote;
             return false;
         }
 
-        // private void Vote(IPreviewBeatmapLevel level, VoteType voteType)
-        // {
-        //     Plugin.Log.Debug($"Voted {voteType} to {level.levelID}");
-        // }
-
-        internal static void Vote(IPreviewBeatmapLevel level, VoteType voteType)
+        public void Vote(IPreviewBeatmapLevel level, VoteType voteType)
         {
             lock (_instanceLock)
             {
@@ -101,11 +94,5 @@ namespace SongPlayHistory
             }
         }
 
-    }
-    
-    public enum VoteType
-    {
-        UpVote = 0,
-        DownVote = 1
     }
 }
