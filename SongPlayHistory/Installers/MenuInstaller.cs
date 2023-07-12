@@ -1,4 +1,5 @@
-﻿using SongPlayHistory.UI;
+﻿using SongPlayHistory.AffinityPatches;
+using SongPlayHistory.UI;
 using Zenject;
 
 namespace SongPlayHistory.Installers

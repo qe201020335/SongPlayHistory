@@ -46,6 +46,10 @@
       <HintPath>$(BeatSaberDir)\Libs\0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="DiTails">
+      <HintPath>$(BeatSaberDir)\Plugins\DiTails.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Hive.Versioning">
       <HintPath>$(BeatSaberDir)\Libs\Hive.Versioning.dll</HintPath>
     </Reference>
@@ -142,6 +146,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AffinityPatches\DiTailsVotePatch.cs" />
     <Compile Include="Configuration\PluginConfig.cs" />
     <Compile Include="HarmonyPatches.cs" />
     <Compile Include="Installers\AppInstaller.cs" />

@@ -9,6 +9,10 @@
   "loadBefore": [
     "SongPlayHistoryContinued"
   ],
+  "loadAfter": [
+    "BeatSaverVoting",
+    "DiTails"
+  ],
   "conflictsWith": {
     "SongPlayHistoryContinued": ">=0.0.0"
   },

@@ -2,7 +2,7 @@
 using System.IO;
 using System.Reflection;
 using HarmonyLib;
-using SiraUtil.Affinity;
+using SongPlayHistory.Configuration;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,6 +18,7 @@ namespace SongPlayHistory
 
         public static bool Prepare()
         {
+            if (Plugin.Instance.BeatSaverVotingInstalled) return false;  // let BeatSaverVoting do the job
             _thumbsUp ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsUp.png");
             _thumbsDown ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsDown.png");
 
@@ -28,6 +29,7 @@ namespace SongPlayHistory
         public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel level, bool isFavorite, 
             Image ____favoritesBadgeImage, TextMeshProUGUI ____songBpmText)
         {
+            if (!PluginConfig.Instance.ShowVotes) return;
             if (float.TryParse(____songBpmText?.text, out float bpm))
             {
                 ____songBpmText.text = bpm.ToString("0");

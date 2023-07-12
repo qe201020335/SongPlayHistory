@@ -11,30 +11,39 @@ namespace SongPlayHistory
 {
     public class UserVoteTracker: IInitializable, IDisposable
     {
+
+        internal static UserVoteTracker? Instance;
+
+        private static readonly object _instanceLock = new();
         
         private static readonly string VoteFile = Path.Combine(Environment.CurrentDirectory, "UserData", "votedSongs.json");
         
-        private static Dictionary<string, UserVote> Votes { get; set; } = new Dictionary<string, UserVote>();
-        
-        // private readonly TableView _tableView;
-        
+        private static Dictionary<string, UserVote>? Votes { get; set; } = new Dictionary<string, UserVote>();
+
+        private static readonly object _voteWriteLock = new();
+
         private DateTime _voteLastWritten;
-
-
-        // public UserVoteTracker(LevelCollectionViewController levelCollectionViewController)
-        // {
-        //     var levelCollectionTableView = levelCollectionViewController.GetField<LevelCollectionTableView, LevelCollectionViewController>("_levelCollectionTableView");
-        //     _tableView = levelCollectionTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
-        // }
 
         public void Initialize()
         {
+            lock (_instanceLock)
+            {
+                Instance = this;
+            }
+            
             ScanVoteData();
         }
 
         public void Dispose()
         {
-            Votes.Clear();
+            lock (_instanceLock)
+            {
+                Instance = this;
+            }
+            lock (_voteWriteLock)
+            {
+                Votes = null;
+            }
         }
         
         internal bool ScanVoteData()
@@ -66,13 +75,6 @@ namespace SongPlayHistory
                 return false;
             }
         }
-        
-        // private void OnPlayResultDismiss(ResultsViewController _)
-        // {
-        //     // The user may have voted on this map.
-        //     ScanVoteData();
-        //     _tableView.RefreshCellsContent();
-        // }
 
         internal static bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
         {
@@ -84,6 +86,19 @@ namespace SongPlayHistory
 
             voteType = VoteType.DownVote;
             return false;
+        }
+
+        // private void Vote(IPreviewBeatmapLevel level, VoteType voteType)
+        // {
+        //     Plugin.Log.Debug($"Voted {voteType} to {level.levelID}");
+        // }
+
+        internal static void Vote(IPreviewBeatmapLevel level, VoteType voteType)
+        {
+            lock (_instanceLock)
+            {
+                Plugin.Log.Debug($"Voted {voteType} to {level.levelID}");
+            }
         }
 
     }
