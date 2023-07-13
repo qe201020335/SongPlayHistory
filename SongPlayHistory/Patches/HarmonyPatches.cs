@@ -18,6 +18,8 @@ namespace SongPlayHistory
         private static Sprite? _thumbsUp;
         private static Sprite? _thumbsDown;
 
+        private static Color _upColor = new Color(0.455f, 0.824f, 0.455f, 0.8f);
+        private static Color _downColor = new Color(0.824f, 0.498f, 0.455f, 0.8f);
         public static bool Prepare()
         {
             if (Plugin.Instance.BeatSaverVotingInstalled) return false;  // let BeatSaverVoting do the job
@@ -28,13 +30,17 @@ namespace SongPlayHistory
         }
 
         [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
-        public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel level, bool isFavorite, 
-            Image ____favoritesBadgeImage, TextMeshProUGUI ____songBpmText)
+        public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel? level, bool isFavorite, 
+            Image ____favoritesBadgeImage, TextMeshProUGUI? ____songBpmText)
         {
             if (!PluginConfig.Instance.ShowVotes) return;
-            if (float.TryParse(____songBpmText?.text, out float bpm))
+            if (level == null) return;
+            if (____songBpmText != null)
             {
-                ____songBpmText.text = bpm.ToString("0");
+                if (float.TryParse(____songBpmText.text, out float bpm))
+                {
+                    ____songBpmText.text = bpm.ToString("0");
+                }
             }
 
             Image? voteIcon = null;
@@ -52,12 +58,21 @@ namespace SongPlayHistory
                 voteIcon = Instantiate(____favoritesBadgeImage, __instance.transform);
                 voteIcon.name = "Vote";
                 voteIcon.rectTransform.sizeDelta = new Vector2(2.5f, 2.5f);
-                voteIcon.color = new Color(1f, 1f, 1f, 0.3f);
             }
 
             if (!isFavorite && InMenuVoteTrackingHelper.Instance?.TryGetVote(level, out var vote) == true)
             {
-                voteIcon.sprite = vote == VoteType.Upvote ? _thumbsUp : _thumbsDown;
+                if (vote == VoteType.Upvote)
+                {
+                    voteIcon.sprite = _thumbsUp;
+                    voteIcon.color = _upColor;
+                }
+                else
+                {
+                    voteIcon.sprite = _thumbsDown;
+                    voteIcon.color = _downColor;
+                }
+                
                 voteIcon.enabled = true;
             }
             else

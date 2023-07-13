@@ -10,7 +10,7 @@ namespace SongPlayHistory.Model
         
         [JsonProperty("voteType")]
         [JsonConverter(typeof(StringEnumConverter))]
-        internal string VoteType;
+        internal VoteType VoteType;
     }
     
     public enum VoteType

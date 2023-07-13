@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using IPA.Utilities;
 using Newtonsoft.Json;
+using SiraUtil.Logging;
 using SongPlayHistory.Model;
 using Zenject;
 
@@ -10,76 +14,109 @@ namespace SongPlayHistory.VoteTracker
     internal class InternalVoteTracker: IVoteTracker, IInitializable, IDisposable
     {
 
-        internal static InternalVoteTracker? Instance;
-
-        private static readonly object _instanceLock = new();
-        
-        private static readonly string VoteFile = Path.Combine(Environment.CurrentDirectory, "UserData", "votedSongs.json");
+        private static readonly string VoteFile = Path.Combine(UnityGame.UserDataPath, "votedSongs.json");
         
         private static Dictionary<string, UserVote>? Votes { get; set; } = new Dictionary<string, UserVote>();
 
         private static readonly object _voteWriteLock = new();
 
-        private DateTime _voteLastWritten;
+        [Inject]
+        private readonly SiraLog _logger = null!;
+
+        private bool _readonly = true;
+
+        // private DateTime _voteLastWritten;
 
         public void Initialize()
         {
-            lock (_instanceLock)
-            {
-                Instance = this;
-            }
+            _logger.Info("Loading votes.");
+            _readonly = true;
             
-            ScanVoteData();
+            if (!File.Exists(VoteFile))
+            {
+                _logger.Debug("BeatSaverVoting votedSongs.json doesn't exist.");
+                _readonly = false;
+                return;
+            }
+
+            try
+            {
+                var text = File.ReadAllText(VoteFile, Encoding.UTF8);
+                Votes = JsonConvert.DeserializeObject<Dictionary<string, UserVote>?>(text) ?? new Dictionary<string, UserVote>();
+                _logger.Info("votedSongs.json Loaded");
+            }
+            catch (Exception ex) // IOException, JsonException
+            {
+                _readonly = true;
+                _logger.Error("Failed to load votedSongs.json. Entering readonly mode.");
+                _logger.Error(ex);
+            }
+
+            try
+            {
+                // backup in case something bad happened.
+                File.Copy(VoteFile, VoteFile + ".sph.bak", true);
+                _readonly = false;
+            }
+            catch (Exception e)
+            {
+                _readonly = true;
+                _logger.Error("Failed to backup votedSongs.json. Entering readonly mode.");
+                _logger.Error(e);
+            }
+        }
+
+        private void SaveVotes()
+        {
+            if (_readonly)
+            {
+                _logger.Debug("Votes not saved, read only");
+                return;
+            }
+
+            try
+            {
+                lock (_voteWriteLock)
+                {
+                    if (Votes != null && Votes.Count > 0)
+                    {
+                        File.WriteAllText(VoteFile, JsonConvert.SerializeObject(Votes), Encoding.UTF8);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error($"Failed to save votedSongs.json: {e.Message}");
+                _logger.Error(e);
+            }
         }
 
         public void Dispose()
         {
-            lock (_instanceLock)
-            {
-                Instance = this;
-            }
             lock (_voteWriteLock)
             {
+                SaveVotes();
                 Votes = null;
-            }
-        }
-        
-        internal bool ScanVoteData()
-        {
-            Plugin.Log?.Info($"Scanning {Path.GetFileName(VoteFile)}...");
-
-            if (!File.Exists(VoteFile))
-            {
-                Plugin.Log?.Warn("The file doesn't exist.");
-                return false;
-            }
-            try
-            {
-                if (_voteLastWritten != File.GetLastWriteTime(VoteFile))
-                {
-                    _voteLastWritten = File.GetLastWriteTime(VoteFile);
-
-                    var text = File.ReadAllText(VoteFile);
-                    Votes = JsonConvert.DeserializeObject<Dictionary<string, UserVote>>(text) ?? new Dictionary<string, UserVote>();
-
-                    Plugin.Log?.Info("Update done.");
-                }
-
-                return true;
-            }
-            catch (Exception ex) // IOException, JsonException
-            {
-                Plugin.Log?.Error(ex.ToString());
-                return false;
             }
         }
 
         public bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
         {
-            if (Votes.TryGetValue(level.levelID.Replace("custom_level_", "").ToLower(), out var vote))
+            try
             {
-                voteType = vote.VoteType == "Upvote" ? VoteType.Upvote : VoteType.Downvote;
-                return true;
+                if (Utils.Utils.TryGetHashFromLevelId(level.levelID, out var hash))
+                {
+                    if (Votes?.TryGetValue(hash.ToLower(), out var vote) == true)
+                    {
+                        voteType = vote.VoteType;
+                        return true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Warn($"Failed to get vote: {e.Message}");
+                _logger.Warn(e);
             }
 
             voteType = VoteType.Downvote;
@@ -88,10 +125,28 @@ namespace SongPlayHistory.VoteTracker
 
         public void Vote(IPreviewBeatmapLevel level, VoteType voteType)
         {
-            lock (_instanceLock)
+            Task.Run(() =>
             {
-                Plugin.Log.Debug($"Voted {voteType} to {level.levelID}");
-            }
+                if (!(level is CustomPreviewBeatmapLevel customLevel)) return;
+                
+                lock (_voteWriteLock)
+                {
+                    if (Votes != null && Utils.Utils.TryGetHashFromLevelId(customLevel.levelID, out var hash))
+                    {
+                        hash = hash.ToLower();
+                        if (!Votes.ContainsKey(hash) || Votes[hash].VoteType != voteType)
+                        {
+                            Votes[hash] = new UserVote
+                            {
+                                Hash = hash,
+                                VoteType = voteType
+                            };
+                            SaveVotes();
+                        }
+                        Plugin.Log.Info($"Voted {voteType} to {level.levelID}");
+                    }
+                }
+            });
         }
 
     }

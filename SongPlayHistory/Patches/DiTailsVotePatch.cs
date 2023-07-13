@@ -10,26 +10,18 @@ namespace SongPlayHistory.Patches
     [HarmonyPatch]
     internal class DiTailsVotePatch
     {
-
-        private static readonly Lazy<Type?> _ditails =
-            new(() => PluginManager.GetPluginFromId("DiTails")?.Assembly.GetType("DiTails.UI.DetailViewHost"));
-        
-        private static readonly Lazy<MethodBase?> _method = 
-            new(() => _ditails.Value?.GetMethod("Vote", BindingFlags.Instance | BindingFlags.NonPublic));
-        
-        // TODO AccessTools.Property(AccessTools.TypeByName("BeatLeader.Replayer.ReplayerLauncher"), "IsStartedAsReplay")?.GetGetMethod(false)
+        private static readonly MethodBase? DiTailsVote = AccessTools.Method("DiTails.UI.DetailViewHost:Vote", new[] { typeof(bool) });
 
         [HarmonyTargetMethod]
         private static MethodBase CalculateMethod()
         {
-            return _method.Value!;
+            return DiTailsVote!;
         }
         
         [HarmonyPrepare]
         private static bool Prepare()
         {
-            Plugin.Log.Debug($"DiTailsVotePatch::Prepare: {_method.Value != null}");
-            return _method.Value != null;
+            return DiTailsVote != null;
         }
 
         [HarmonyPrefix]

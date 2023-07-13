@@ -27,7 +27,7 @@ namespace SongPlayHistory.VoteTracker
                     var votes = AccessTools.Field(typeof(BeatSaverVoting.Plugin), "votedSongs")?.GetValue(null) as Dictionary<string, BeatSaverVoting.Plugin.SongVote>;
                     if (votes == null)
                     {
-                        _logger.Warn($"Can't get votedSongs field from BeatSaverVoting");
+                        _logger.Warn("Can't get votedSongs field from BeatSaverVoting");
                     }
                     return votes;
                 }
