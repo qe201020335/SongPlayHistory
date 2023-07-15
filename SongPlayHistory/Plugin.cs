@@ -40,7 +40,7 @@ namespace SongPlayHistory
             BSMLSettings.instance.AddSettingsMenu("Song Play History", "SongPlayHistory.UI.Settings.bsml", SettingsController.instance);
             
             zenjector.UseLogger();
-            zenjector.Install<ScoreTrackerInstaller>(Location.Player);
+            zenjector.Install<ScoreTrackerInstaller>(Location.MultiPlayer | Location.StandardPlayer);
             zenjector.Install<MenuInstaller>(Location.Menu);
             zenjector.Install<AppInstaller>(Location.App);
         }

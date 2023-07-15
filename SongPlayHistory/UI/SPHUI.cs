@@ -241,8 +241,8 @@ namespace SongPlayHistory.UI
                 builder.Append($"<size=3.5><color=#0f4c75ff> {r.ModifiedScore}</color></size>");
                 if (shouldShowAcc && r.RawScore <= denom)
                 {
-                    // bug: a soft fail record will save total score instead of at the time of fail   
-                    // result in the the saved score much greater than the max score
+                    // some soft failed record saved total score instead of at the time of fail   
+                    // result in the the saved score be much greater than the max score
                     builder.Append($"<size=3.5><color=#368cc6ff> {accuracy:0.00}%</color></size>");
                 }
                 if (param.Length > 0)

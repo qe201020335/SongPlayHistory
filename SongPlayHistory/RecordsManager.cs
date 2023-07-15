@@ -6,6 +6,7 @@ using BS_Utils.Gameplay;
 using BS_Utils.Utilities;
 using ModestTree;
 using Newtonsoft.Json;
+using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
 using SongPlayHistory.Utils;
@@ -15,9 +16,12 @@ namespace SongPlayHistory
 {
     internal class RecordsManager: IInitializable, IDisposable
     {
-        public readonly string DataFile = Path.Combine(Environment.CurrentDirectory, "UserData", "SongPlayData.json");
+        private readonly string DataFile = Path.Combine(Environment.CurrentDirectory, "UserData", "SongPlayData.json");
 
-        public Dictionary<string, IList<Record>> Records { get; set; } = new Dictionary<string, IList<Record>>();
+        private Dictionary<string, IList<Record>> Records { get; set; } = new Dictionary<string, IList<Record>>();
+
+        [Inject]
+        private readonly SiraLog _logger = null!;
 
         public void Initialize()
         {
@@ -87,6 +91,9 @@ namespace SongPlayHistory
             _isPractice = practiceSettings != null;
             _isReplay = Utils.Utils.IsInReplay();
             ScoreTracker.MaxRawScore = null;
+            ScoreTracker.RawScore = null;
+            ScoreTracker.MultipliedScore = null;
+            ScoreTracker.EnergyDidReach0 = false;
         }
 
         private void OnLevelFinished(object scene, LevelFinishedEventArgs eventArgs)
@@ -122,17 +129,7 @@ namespace SongPlayHistory
             }
         }
 
-        private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer)
-        {
-            if (result?.multipliedScore > 0)
-            {
-                // Actually there's no way to know if any custom modifier was applied if the user failed a map.
-                var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
-                SaveRecord(beatmap, ScoreTracker.MaxRawScore, result, submissionDisabled, isMultiplayer);
-            }
-        }
-
-        public List<Record> GetRecords(IDifficultyBeatmap beatmap)
+        public IList<Record> GetRecords(IDifficultyBeatmap beatmap)
         {
             var config = PluginConfig.Instance;
             var beatmapCharacteristicName = beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
@@ -149,10 +146,17 @@ namespace SongPlayHistory
             return new List<Record>();
         }
 
-        private void SaveRecord(IDifficultyBeatmap? beatmap, int? MaxRawScore, LevelCompletionResults? result, bool submissionDisabled, bool isMultiplayer)
+        private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer)
         {
             if (beatmap == null || result == null)
             {
+                _logger.Warn("Beatmap or completionResults is null.");
+                return;
+            }
+            
+            if (result.multipliedScore <= 0)
+            {
+                _logger.Warn("Record ignored, score is 0.");
                 return;
             }
 
@@ -164,21 +168,43 @@ namespace SongPlayHistory
 
             // We now keep failed records.
             var cleared = result.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared;
-
+            var softFailed = ScoreTracker.EnergyDidReach0;
+            
+            var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
             // If submissionDisabled = true, we assume custom gameplay modifiers are applied.
             var param = ParamHelper.ModsToParam(result.gameplayModifiers);
             param |= submissionDisabled ? Param.SubmissionDisabled : 0;
             param |= isMultiplayer ? Param.Multiplayer : 0;
 
-            var record = new Record
+            Record record;
+            
+            if (cleared && softFailed && ScoreTracker.RawScore != null && ScoreTracker.MultipliedScore != null)
             {
-                Date = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-                ModifiedScore = result.modifiedScore,
-                RawScore = result.multipliedScore,
-                LastNote = cleared ? -1 : result.goodCutsCount + result.badCutsCount + result.missedCount,
-                Param = (int)param,
-                MaxRawScore = MaxRawScore
-            };
+                // use our tracked values at the time of soft fail
+                record = new Record
+                {
+                    Date = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                    ModifiedScore = ScoreTracker.RawScore.Value,
+                    RawScore = ScoreTracker.MultipliedScore.Value,
+                    LastNote = ScoreTracker.NotesPassed,
+                    Param = (int) param,
+                    MaxRawScore = ScoreTracker.MaxRawScore
+                };
+            }
+            else
+            {
+                record = new Record
+                {
+                    Date = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                    ModifiedScore = result.modifiedScore,
+                    RawScore = result.multipliedScore,
+                    LastNote = cleared ? -1 : result.goodCutsCount + result.badCutsCount + result.missedCount,
+                    Param = (int) param,
+                    MaxRawScore = cleared ? null : ScoreTracker.MaxRawScore
+                };
+            }
+            
+            
             
             Plugin.Log.Info($"Saving result.");
             Plugin.Log.Debug($"Record: {record.ToShortString()}");
