@@ -1,4 +1,5 @@
 ﻿using System;
+using SiraUtil.Logging;
 using Zenject;
 
 namespace SongPlayHistory.Utils
@@ -21,6 +22,9 @@ namespace SongPlayHistory.Utils
         [InjectOptional]
         private readonly BeatmapObjectManager? _beatmapObjectManager = null;
 
+        [Inject]
+        private readonly SiraLog _logger = null!;
+
         public void Initialize()
         {
             MaxRawScore = null;
@@ -41,7 +45,7 @@ namespace SongPlayHistory.Utils
             } 
             else 
             {
-                Plugin.Log.Warn("scoreController or energyCounter or beatmapObjectManager is null!");
+                _logger.Warn("scoreController or energyCounter or beatmapObjectManager is null!");
             }
         }
 
@@ -60,7 +64,7 @@ namespace SongPlayHistory.Utils
             EnergyDidReach0 = true;
             MaxRawScore = _scoreController?.immediateMaxPossibleMultipliedScore;
             RawScore = _scoreController?.multipliedScore;
-            Plugin.Log.Info($"Energy reached 0! Notes fired: {NotesPassed} Scores w/o modifiers: {RawScore}/{MaxRawScore}");
+            _logger.Info($"Energy reached 0! Notes fired: {NotesPassed} Scores w/o modifiers: {RawScore}/{MaxRawScore}");
         }
 
         private void OnScoreChanged(ScoringElement _)

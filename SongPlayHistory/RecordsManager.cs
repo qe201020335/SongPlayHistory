@@ -221,8 +221,8 @@ namespace SongPlayHistory
             
             
             
-            Plugin.Log.Info($"Saving result.");
-            Plugin.Log.Debug($"Record: {record.ToShortString()}");
+            _logger.Info($"Saving result.");
+            _logger.Debug($"Record: {record.ToShortString()}");
 
             var beatmapCharacteristicName = beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
             var difficulty = $"{beatmap.level.levelID}___{(int)beatmap.difficulty}___{beatmapCharacteristicName}";
@@ -236,7 +236,7 @@ namespace SongPlayHistory
             // Save to a file. We do this synchronously because the overhead is small. (400 ms / 15 MB, 60 ms / 1 MB)
             SaveRecordsToFile();
 
-            Plugin.Log?.Info($"Saved a new record {difficulty} ({result.modifiedScore}).");
+            _logger.Info($"Saved a new record {difficulty} ({result.modifiedScore}).");
         }
 
         private void SaveRecordsToFile()
@@ -251,7 +251,7 @@ namespace SongPlayHistory
             }
             catch (Exception ex) // IOException, JsonException
             {
-                Plugin.Log?.Error(ex.ToString());
+                _logger.Error(ex.ToString());
             }
         }
 
@@ -274,7 +274,7 @@ namespace SongPlayHistory
                     }
                     else
                     {
-                        Plugin.Log?.Info("Nothing to backup.");
+                        _logger.Info("Nothing to backup.");
                     }
                 }
                 else
@@ -284,7 +284,7 @@ namespace SongPlayHistory
             }
             catch (IOException ex)
             {
-                Plugin.Log?.Error(ex.ToString());
+                _logger.Error(ex.ToString());
             }
         }
     }
