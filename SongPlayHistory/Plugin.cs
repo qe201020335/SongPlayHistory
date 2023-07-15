@@ -55,30 +55,5 @@ namespace SongPlayHistory
                 _harmony.PatchAll(Assembly.GetExecutingAssembly());
             }
         }
-
-
-        // public void PatchSongListVoteIcon(bool enabled)
-        // {
-        //     if (BeatSaverVotingInstalled) return;  // let BeatSaverVoting do the job
-        //     try
-        //     {
-        //         if (enabled && !Harmony.HasAnyPatches(HarmonyId))
-        //         {
-        //             Log.Info("Applying Harmony patches...");
-        //             _harmony.PatchAll(Assembly.GetExecutingAssembly());
-        //         }
-        //         else if (!enabled && Harmony.HasAnyPatches(HarmonyId))
-        //         {
-        //             Log.Info("Removing Harmony patches...");
-        //             _harmony.UnpatchSelf();
-        //
-        //             SetDataFromLevelAsync.OnUnpatch();
-        //         }
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         Log.Error("Error while applying Harmony patches.\n" + ex.ToString());
-        //     }
-        // }
     }
 }
