@@ -6,93 +6,112 @@ namespace SongPlayHistory.Utils
 {
     public class ScoreTracker : IInitializable, IDisposable
     {
-        public static int? MaxRawScore { get; internal set; } = null;
-        public static int? RawScore { get; internal set; } = null;
+        private int _maxRawScore;
+        private int _rawScore;
+        private int _modifiedScore;
+        private int _notesPassed;
 
-        public static int? MultipliedScore { get; internal set; } = null;
         public static bool EnergyDidReach0 { get; internal set; } = false;
-        public static int NotesPassed { get; private set; } = 0;
+
+        /**
+         * Score record of when the energy first reached 0
+         */
+        public static ScoreRecord? FailScoreRecord { get; internal set; } = null;
         
-        [InjectOptional]
-        private readonly IScoreController? _scoreController = null;
+        [Inject]
+        private readonly IScoreController _scoreController = null!;
 
-        [InjectOptional]
-        private readonly IGameEnergyCounter? _energyCounter = null;
+        [Inject]
+        private readonly IGameEnergyCounter _energyCounter = null!;
 
-        [InjectOptional]
-        private readonly BeatmapObjectManager? _beatmapObjectManager = null;
+        [Inject]
+        private readonly BeatmapObjectManager _beatmapObjectManager = null!;
 
         [Inject]
         private readonly SiraLog _logger = null!;
 
         public void Initialize()
         {
-            MaxRawScore = null;
-            RawScore = null;
-            MultipliedScore = null;
+            _maxRawScore = 0;
+            _rawScore = 0;
+            _modifiedScore = 0;
             EnergyDidReach0 = false;
-            NotesPassed = 0;
-            if (_scoreController != null && _energyCounter != null && _beatmapObjectManager != null)
-            {
-                _energyCounter.gameEnergyDidReach0Event -= OnEnergyDidReach0;
-                _energyCounter.gameEnergyDidReach0Event += OnEnergyDidReach0;
-                _scoreController.scoringForNoteFinishedEvent -= OnScoreChanged;
-                _scoreController.scoringForNoteFinishedEvent += OnScoreChanged;
-                _beatmapObjectManager.noteWasCutEvent -= OnNoteCut;
-                _beatmapObjectManager.noteWasCutEvent += OnNoteCut;
-                _beatmapObjectManager.noteWasMissedEvent -= OnNoteMiss;
-                _beatmapObjectManager.noteWasMissedEvent += OnNoteMiss;
-            } 
-            else 
-            {
-                _logger.Warn("scoreController or energyCounter or beatmapObjectManager is null!");
-            }
+            _notesPassed = 0;
+            
+            _energyCounter.gameEnergyDidReach0Event -= OnEnergyDidReach0;
+            _energyCounter.gameEnergyDidReach0Event += OnEnergyDidReach0;
+            _scoreController.scoringForNoteFinishedEvent -= OnScoreChanged;
+            _scoreController.scoringForNoteFinishedEvent += OnScoreChanged;
+            _beatmapObjectManager.noteWasCutEvent -= OnNoteCut;
+            _beatmapObjectManager.noteWasCutEvent += OnNoteCut;
+            _beatmapObjectManager.noteWasMissedEvent -= OnNoteMiss;
+            _beatmapObjectManager.noteWasMissedEvent += OnNoteMiss;
         }
 
         private void OnNoteCut(NoteController noteController, in NoteCutInfo noteCutInfo)
         {
-            NotesPassed++;
+            _notesPassed++;
         }
 
         private void OnNoteMiss(NoteController noteController)
         {
-            NotesPassed++;
+            _notesPassed++;
         }
 
         private void OnEnergyDidReach0()
         {
+            if (EnergyDidReach0) return;
+            
             EnergyDidReach0 = true;
-            MaxRawScore = _scoreController?.immediateMaxPossibleMultipliedScore;
-            RawScore = _scoreController?.multipliedScore;
-            _logger.Info($"Energy reached 0! Notes fired: {NotesPassed} Scores w/o modifiers: {RawScore}/{MaxRawScore}");
+            _maxRawScore = _scoreController.immediateMaxPossibleMultipliedScore;
+            _modifiedScore = _scoreController.modifiedScore;
+            _rawScore = _scoreController.multipliedScore;
+            _logger.Info($"Energy reached 0! Notes fired: {_notesPassed}, Scores: {_rawScore}/{_modifiedScore}/{_maxRawScore}");
+            
+            FailScoreRecord = new ScoreRecord(
+                energyDidReach0:true, 
+                rawScore:_rawScore, 
+                modifiedScore:_modifiedScore, 
+                maxRawScore:_maxRawScore, 
+                notesPassed:_notesPassed);
         }
 
         private void OnScoreChanged(ScoringElement _)
         {
-            if (!EnergyDidReach0)
-            {
-                MaxRawScore = _scoreController?.immediateMaxPossibleMultipliedScore;
-                RawScore = _scoreController?.multipliedScore;
-            }
+            _maxRawScore = _scoreController.immediateMaxPossibleMultipliedScore;
+            _modifiedScore = _scoreController.modifiedScore;
+            _rawScore = _scoreController.multipliedScore;
         }
 
         public void Dispose()
         {
-            if (_energyCounter != null)
-            {
-                _energyCounter.gameEnergyDidReach0Event -= OnEnergyDidReach0;
-            }
-            
-            if (_scoreController != null)
-            {
-                _scoreController.scoringForNoteFinishedEvent -= OnScoreChanged;
-            }
+            _energyCounter.gameEnergyDidReach0Event -= OnEnergyDidReach0;
+            _scoreController.scoringForNoteFinishedEvent -= OnScoreChanged;
+            _beatmapObjectManager.noteWasCutEvent -= OnNoteCut;
+            _beatmapObjectManager.noteWasMissedEvent -= OnNoteMiss;
+        }
+    }
 
-            if (_beatmapObjectManager != null)
-            {
-                _beatmapObjectManager.noteWasCutEvent -= OnNoteCut;
-                _beatmapObjectManager.noteWasMissedEvent -= OnNoteMiss;
-            }
+    public struct ScoreRecord
+    {
+        public readonly bool EnergyDidReach0;
+        public readonly int MaxRawScore;
+        public readonly int RawScore;
+        public readonly int ModifiedScore;
+        public readonly int NotesPassed;
+
+        internal ScoreRecord(bool energyDidReach0, int rawScore, int modifiedScore, int maxRawScore, int notesPassed)
+        {
+            EnergyDidReach0 = energyDidReach0;
+            RawScore = rawScore;
+            ModifiedScore = modifiedScore;
+            MaxRawScore = maxRawScore;
+            NotesPassed = notesPassed;
+        }
+
+        public override string ToString()
+        {
+            return $"EnergyDidReach0 {EnergyDidReach0}, Notes fired: {NotesPassed}, Scores: {RawScore}/{ModifiedScore}/{MaxRawScore}";
         }
     }
 }

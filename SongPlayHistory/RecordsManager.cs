@@ -105,10 +105,8 @@ namespace SongPlayHistory
             var practiceSettings = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData?.practiceSettings;
             _isPractice = practiceSettings != null;
             _isReplay = Utils.Utils.IsInReplay();
-            ScoreTracker.MaxRawScore = null;
-            ScoreTracker.RawScore = null;
-            ScoreTracker.MultipliedScore = null;
             ScoreTracker.EnergyDidReach0 = false;
+            ScoreTracker.FailScoreRecord = null;
         }
 
         private void OnLevelFinished(object scene, LevelFinishedEventArgs eventArgs)
@@ -125,11 +123,13 @@ namespace SongPlayHistory
             }
 
             var result = ((LevelFinishedWithResultsEventArgs)eventArgs).CompletionResults;
+            var energyDidReach0 = ScoreTracker.EnergyDidReach0;
+            var failRecord = ScoreTracker.FailScoreRecord;
             
             if (eventArgs.LevelType == LevelType.Multiplayer)
             {
                 var beatmap = ((MultiplayerLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
-                SaveRecord(beatmap, result, true);
+                SaveRecord(beatmap, result, true, energyDidReach0, failRecord);
             }
             else
             {
@@ -140,7 +140,7 @@ namespace SongPlayHistory
                     return;
                 }
                 var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
-                SaveRecord(beatmap, result, false);
+                SaveRecord(beatmap, result, false, energyDidReach0, failRecord);
             }
         }
 
@@ -161,7 +161,7 @@ namespace SongPlayHistory
             return new List<Record>();
         }
 
-        private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer)
+        private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer, bool energyDidReach0, ScoreRecord? failRecord)
         {
             if (beatmap == null || result == null)
             {
@@ -183,46 +183,57 @@ namespace SongPlayHistory
 
             // We now keep failed records.
             var cleared = result.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared;
-            var softFailed = ScoreTracker.EnergyDidReach0;
-            
             var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
-            // If submissionDisabled = true, we assume custom gameplay modifiers are applied.
-            var param = ParamHelper.ModsToParam(result.gameplayModifiers, softFailed);
+            var noFailEnabled = result.gameplayModifiers.noFailOn0Energy;
+            
+            _logger.Debug($"Cleared: {cleared}, NoFail: {noFailEnabled}, SoftFailed: {energyDidReach0}, FailRecord: {failRecord}");
+            
+            var param = ParamHelper.ModsToParam(result.gameplayModifiers, energyDidReach0);
             param |= submissionDisabled ? Param.SubmissionDisabled : 0;
             param |= isMultiplayer ? Param.Multiplayer : 0;
-
+            var time = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             Record record;
             
-            if (cleared && softFailed && ScoreTracker.RawScore != null && ScoreTracker.MultipliedScore != null)
+            if (cleared && energyDidReach0 && failRecord != null)
             {
                 // use our tracked values at the time of soft fail
                 record = new Record
                 {
-                    Date = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-                    ModifiedScore = ScoreTracker.RawScore.Value,
-                    RawScore = ScoreTracker.MultipliedScore.Value,
-                    LastNote = ScoreTracker.NotesPassed,
+                    Date = time,
+                    ModifiedScore = failRecord.Value.RawScore,
+                    RawScore = failRecord.Value.ModifiedScore,
+                    LastNote = failRecord.Value.NotesPassed,
                     Param = (int) param,
-                    MaxRawScore = ScoreTracker.MaxRawScore
+                    MaxRawScore = failRecord.Value.MaxRawScore
+                };
+            }
+            else if (!cleared && noFailEnabled && energyDidReach0 && failRecord != null)
+            {
+                // No fail is enabled, but level still failed (for example, thr FailButton mod)
+                record = new Record
+                {
+                    Date = time,
+                    ModifiedScore = failRecord.Value.RawScore,
+                    RawScore = failRecord.Value.ModifiedScore,
+                    LastNote = failRecord.Value.NotesPassed,
+                    Param = (int) param,
+                    MaxRawScore = failRecord.Value.MaxRawScore
                 };
             }
             else
             {
                 record = new Record
                 {
-                    Date = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+                    Date = time,
                     ModifiedScore = result.modifiedScore,
                     RawScore = result.multipliedScore,
                     LastNote = cleared ? -1 : result.goodCutsCount + result.badCutsCount + result.missedCount,
                     Param = (int) param,
-                    MaxRawScore = cleared ? null : ScoreTracker.MaxRawScore
+                    MaxRawScore = cleared ? null : failRecord?.MaxRawScore
                 };
             }
-            
-            
-            
-            _logger.Info($"Saving result.");
-            _logger.Debug($"Record: {record.ToShortString()}");
+
+            _logger.Info($"Saving result. Record: {record.ToShortString()}");
 
             var beatmapCharacteristicName = beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
             var difficulty = $"{beatmap.level.levelID}___{(int)beatmap.difficulty}___{beatmapCharacteristicName}";

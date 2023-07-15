@@ -8,7 +8,7 @@ namespace SongPlayHistory.Installers
         public override void InstallBindings()
         {
             Plugin.Log.Warn("Binding ScoreTracker");
-            Container.BindInterfacesTo<ScoreTracker>().AsSingle().NonLazy();
+            Container.BindInterfacesTo<ScoreTracker>().AsSingle();
         }
     }
 }
