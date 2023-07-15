@@ -44,13 +44,14 @@ namespace SongPlayHistory
             catch (JsonException ex)
             {
                 // The data file is corrupted.
-                Plugin.Log?.Error(ex.ToString());
+                _logger.Error($"Failed to load history: {ex.Message}");
+                _logger.Error(ex);
 
                 // Try to restore from a backup.
                 var backup = new FileInfo(Path.ChangeExtension(DataFile, ".bak"));
                 if (backup.Exists && backup.Length > 0)
                 {
-                    Plugin.Log?.Info("Restoring from a backup...");
+                    _logger.Notice("Restoring from a backup");
                     text = File.ReadAllText(backup.FullName);
 
                     Records = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
@@ -68,6 +69,20 @@ namespace SongPlayHistory
                 SaveRecordsToFile();
             }
             
+            _logger.Info("Cleaning up passed NF records");
+            foreach (var record in Records.Values.SelectMany(i => i))
+            {
+                if (record.LastNote < 0 && ((Param)record.Param).HasFlag(Param.NoFail))
+                {
+                    // if the level is cleared but has the NF flag, remove NF
+                    record.Param = (int) ((Param)record.Param & ~Param.NoFail);
+                } 
+            }
+            
+            // TODO remove bad records?
+            
+            SaveRecordsToFile();
+
             BSEvents.gameSceneLoaded -= OnGameSceneLoaded;
             BSEvents.gameSceneLoaded += OnGameSceneLoaded;
             BSEvents.LevelFinished -= OnLevelFinished;
@@ -172,7 +187,7 @@ namespace SongPlayHistory
             
             var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
             // If submissionDisabled = true, we assume custom gameplay modifiers are applied.
-            var param = ParamHelper.ModsToParam(result.gameplayModifiers);
+            var param = ParamHelper.ModsToParam(result.gameplayModifiers, softFailed);
             param |= submissionDisabled ? Param.SubmissionDisabled : 0;
             param |= isMultiplayer ? Param.Multiplayer : 0;
 

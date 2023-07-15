@@ -50,11 +50,11 @@ namespace SongPlayHistory.Model
 
     internal static class ParamHelper
     {
-        internal static Param ModsToParam(GameplayModifiers mods)
+        internal static Param ModsToParam(GameplayModifiers mods, bool softFailed)
         {
             Param param = Param.None;
             param |= mods.energyType == GameplayModifiers.EnergyType.Battery ? Param.BatteryEnergy : 0;
-            param |= mods.noFailOn0Energy ? Param.NoFail : 0;
+            param |= mods.noFailOn0Energy && softFailed ? Param.NoFail : 0;
             param |= mods.instaFail ? Param.InstaFail : 0;
             param |= mods.enabledObstacleType == GameplayModifiers.EnabledObstacleType.NoObstacles ? Param.NoObstacles : 0;
             param |= mods.noBombs ? Param.NoBombs : 0;
