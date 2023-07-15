@@ -25,5 +25,29 @@ namespace SongPlayHistory.Utils
             return ssReplay || blReplay;
         }
         #endregion
+
+        internal static bool TryGetHashFromLevelId(string levelId, out string hash)
+        {
+            if (levelId.StartsWith("custom_level_") && !levelId.Contains("WIP"))
+            {
+                // When there are duplicated levels
+                // the level id would be custom_level_HASHHASHHASH_SONGFOLDERNAME
+                var id = levelId.Replace("custom_level_", "");
+                var index = id.IndexOf("_");
+                if (index >= 0 && id.Length >= index)
+                {
+                    id = id.Substring(0, index);
+                }
+
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    hash = id;
+                    return true;
+                }
+            }
+            
+            hash = "";
+            return false;
+        }
     }
 }

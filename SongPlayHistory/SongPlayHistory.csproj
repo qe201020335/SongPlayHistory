@@ -46,6 +46,14 @@
       <HintPath>$(BeatSaberDir)\Libs\0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="BeatSaverVoting">
+      <HintPath>$(BeatSaberDir)\Plugins\BeatSaverVoting.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="DiTails">
+      <HintPath>$(BeatSaberDir)\Plugins\DiTails.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Hive.Versioning">
       <HintPath>$(BeatSaberDir)\Libs\Hive.Versioning.dll</HintPath>
     </Reference>
@@ -63,6 +71,10 @@
     </Reference>
     <Reference Include="BS_Utils">
       <HintPath>$(BeatSaberDir)\Plugins\BS_Utils.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BeatSaverVoting">
+      <HintPath>$(BeatSaberDir)\Plugins\BeatSaverVoting.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="BeatmapCore">
@@ -142,18 +154,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BeatSaberUI.cs" />
     <Compile Include="Configuration\PluginConfig.cs" />
-    <Compile Include="HarmonyPatches.cs" />
+    <Compile Include="Installers\AppInstaller.cs" />
+    <Compile Include="Installers\ScoreTrackerInstaller.cs" />
+    <Compile Include="Installers\MenuInstaller.cs" />
+    <Compile Include="Model\Record.cs" />
+    <Compile Include="Model\UserVote.cs" />
+    <Compile Include="Patches\DiTailsVotePatch.cs" />
+    <Compile Include="Patches\HarmonyPatches.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SPHController.cs" />
-    <Compile Include="SPHModel.cs" />
+    <Compile Include="RecordsManager.cs" />
     <Compile Include="UI\SettingsController.cs" />
     <Compile Include="UI\SPHUI.cs" />
+    <Compile Include="Utils\LayoutUtils.cs" />
     <Compile Include="Utils\ScoreTracker.cs" />
     <Compile Include="Utils\ScoreUtils.cs" />
     <Compile Include="Utils\Utils.cs" />
+    <Compile Include="VoteTracker\BeatSaverVotingTracker.cs" />
+    <Compile Include="VoteTracker\InMenuVoteTrackingHelper.cs" />
+    <Compile Include="VoteTracker\IVoteTracker.cs" />
+    <Compile Include="VoteTracker\InternalVoteTracker.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="UI\Settings.bsml" />

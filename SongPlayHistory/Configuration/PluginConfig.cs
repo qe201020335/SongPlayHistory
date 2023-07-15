@@ -2,7 +2,7 @@
 {
     public class PluginConfig
     {
-        public static PluginConfig Instance { get; set; }
+        public static PluginConfig Instance { get; set; } = null!;
 
         public bool ShowFailed { get; set; } = true;
         public bool AverageAccuracy { get; set; } = true;

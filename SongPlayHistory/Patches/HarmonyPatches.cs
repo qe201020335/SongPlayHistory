@@ -1,6 +1,10 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using HarmonyLib;
+using SongPlayHistory.Configuration;
+using SongPlayHistory.Model;
+using SongPlayHistory.VoteTracker;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,24 +18,32 @@ namespace SongPlayHistory
         private static Sprite? _thumbsUp;
         private static Sprite? _thumbsDown;
 
+        private static Color _upColor = new Color(0.455f, 0.824f, 0.455f, 0.8f);
+        private static Color _downColor = new Color(0.824f, 0.498f, 0.455f, 0.8f);
         public static bool Prepare()
         {
+            if (Plugin.Instance.BeatSaverVotingInstalled) return false;  // let BeatSaverVoting do the job
             _thumbsUp ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsUp.png");
             _thumbsDown ??= LoadSpriteFromResource(@"SongPlayHistory.Assets.ThumbsDown.png");
 
-            return SPHModel.ScanVoteData();
+            return _thumbsUp != null && _thumbsDown != null;
         }
 
         [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
-        public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel level, bool isFavorite, 
-            Image ____favoritesBadgeImage, TextMeshProUGUI ____songBpmText)
+        public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel? level, bool isFavorite, 
+            Image ____favoritesBadgeImage, TextMeshProUGUI? ____songBpmText)
         {
-            if (float.TryParse(____songBpmText?.text, out float bpm))
+            if (!PluginConfig.Instance.ShowVotes) return;
+            if (level == null) return;
+            if (____songBpmText != null)
             {
-                ____songBpmText.text = bpm.ToString("0");
+                if (float.TryParse(____songBpmText.text, out float bpm))
+                {
+                    ____songBpmText.text = bpm.ToString("0");
+                }
             }
 
-            Image voteIcon = null;
+            Image? voteIcon = null;
             foreach (var image in __instance.GetComponentsInChildren<Image>())
             {
                 // For performance reason, avoid using Linq.
@@ -46,14 +58,26 @@ namespace SongPlayHistory
                 voteIcon = Instantiate(____favoritesBadgeImage, __instance.transform);
                 voteIcon.name = "Vote";
                 voteIcon.rectTransform.sizeDelta = new Vector2(2.5f, 2.5f);
-                voteIcon.color = new Color(1f, 1f, 1f, 0.3f);
             }
-            voteIcon.enabled = false;
 
-            if (!isFavorite && SPHModel.Votes.TryGetValue(level.levelID.Replace("custom_level_", "").ToLower(), out var vote))
+            if (!isFavorite && InMenuVoteTrackingHelper.Instance?.TryGetVote(level, out var vote) == true)
             {
-                voteIcon.sprite = vote.voteType == "Upvote" ? _thumbsUp : _thumbsDown;
+                if (vote == VoteType.Upvote)
+                {
+                    voteIcon.sprite = _thumbsUp;
+                    voteIcon.color = _upColor;
+                }
+                else
+                {
+                    voteIcon.sprite = _thumbsDown;
+                    voteIcon.color = _downColor;
+                }
+                
                 voteIcon.enabled = true;
+            }
+            else
+            {
+                voteIcon.enabled = false;
             }
         }
 
@@ -68,16 +92,16 @@ namespace SongPlayHistory
             }
         }
 
-        private static Sprite LoadSpriteFromResource(string resourcePath)
+        private static Sprite? LoadSpriteFromResource(string resourcePath)
         {
             try
             {
-                using var stream = Assembly.GetCallingAssembly().GetManifestResourceStream(resourcePath);
-                var resource = new byte[stream.Length];
-                stream.Read(resource, 0, (int)stream.Length);
-
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourcePath);
+                using var ms = new MemoryStream();
+                stream!.CopyTo(ms);
+                
                 var texture = new Texture2D(2, 2);
-                texture.LoadImage(resource);
+                texture.LoadImage(ms.ToArray());
 
                 var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0, 0));
                 return sprite;
