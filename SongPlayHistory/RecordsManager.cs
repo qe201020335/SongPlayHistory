@@ -69,15 +69,16 @@ namespace SongPlayHistory
                 SaveRecordsToFile();
             }
             
-            _logger.Info("Cleaning up passed NF records");
-            foreach (var record in Records.Values.SelectMany(i => i))
-            {
-                if (record.LastNote < 0 && ((Param)record.Param).HasFlag(Param.NoFail))
-                {
-                    // if the level is cleared but has the NF flag, remove NF
-                    record.Param = (int) ((Param)record.Param & ~Param.NoFail);
-                } 
-            }
+            // _logger.Info("Cleaning up passed NF records");
+            // foreach (var record in Records.Values.SelectMany(i => i))
+            // {
+            //     if (record.LastNote < 0 && ((Param)record.Param).HasFlag(Param.NoFail))
+            //     {
+            //         // if the level is cleared but has the NF flag, remove NF
+            //         record.Param = (int) ((Param)record.Param & ~Param.NoFail);
+            //     } 
+            // } // This will affect all old NF records.
+            
             
             // TODO remove bad records?
             

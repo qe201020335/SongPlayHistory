@@ -229,10 +229,17 @@ namespace SongPlayHistory.UI
 
                 if (v2Score && r.MaxRawScore == null) r.CalculatedMaxRawScore = adjMaxScore;
 
-                var param = ((Param)r.Param).ToParamString();
-                if (param.Length == 0 && r.RawScore != r.ModifiedScore)
+                var param = (Param) r.Param;
+                if (levelFinished && r.ModifiedScore == r.RawScore)
                 {
-                    param = "?!";
+                    // NF penalty definitely not triggered 
+                    param &= ~Param.NoFail;
+                }
+
+                var paramString = param.ToParamString();
+                if (paramString.Length == 0 && r.RawScore != r.ModifiedScore)
+                {
+                    paramString = "?!";
                 }
                 var notesRemaining = notesCount - r.LastNote;
 
@@ -245,9 +252,9 @@ namespace SongPlayHistory.UI
                     // result in the the saved score be much greater than the max score
                     builder.Append($"<size=3.5><color=#368cc6ff> {accuracy:0.00}%</color></size>");
                 }
-                if (param.Length > 0)
+                if (paramString.Length > 0)
                 {
-                    builder.Append($"<size=2><color=#1a252bff> {param}</color></size>");
+                    builder.Append($"<size=2><color=#1a252bff> {paramString}</color></size>");
                 }
                 if (PluginConfig.Instance.ShowFailed)
                 {
