@@ -1,4 +1,5 @@
 ﻿using BeatSaberMarkupLanguage.Attributes;
+using BeatSaberMarkupLanguage.Util;
 using SongPlayHistory.Configuration;
 
 namespace SongPlayHistory.UI

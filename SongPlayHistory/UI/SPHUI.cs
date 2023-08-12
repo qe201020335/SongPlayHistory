@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using HMUI;
 using IPA.Utilities;
+using Polyglot;
 using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
@@ -142,7 +143,12 @@ namespace SongPlayHistory.UI
                     (maxRank.transform as RectTransform)!.anchorMax = new Vector2(3 * w, .5f);
                     (_playCount.transform as RectTransform)!.anchorMin = new Vector2(3 * w, .5f);
                     (_playCount.transform as RectTransform)!.anchorMax = new Vector2(4 * w, .5f);
+                    
                     var title = _playCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Title");
+                    // The text behind the title of the cloned maxCombo component is localized, so we need 
+                    // to destroy the localized component so that we can change its text to "Play Count", 
+                    // otherwise the localized text is retained in favour of ours
+                    UObject.Destroy(title.GetComponentInChildren<LocalizedTextMeshProUGUI>());
                     title.SetText("Play Count");
                     
                     return _playCount;
