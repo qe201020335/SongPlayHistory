@@ -1,5 +1,10 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using HarmonyLib;
+using SongPlayHistory.Model;
+using SongPlayHistory.SongPlayData;
 
 namespace SongPlayHistory.Utils
 {
@@ -48,6 +53,17 @@ namespace SongPlayHistory.Utils
             
             hash = "";
             return false;
+        }
+        
+        internal static IList<ISongPlayRecord> Copy(this IEnumerable<Record> records)
+        {
+            return records.Select(record => record.Copy()).ToList();
+        }
+        
+        internal static StringBuilder TMPSpace(this StringBuilder s, int len)
+        {
+            var space = string.Concat(Enumerable.Repeat("_", len));
+            return s.Append($"<size=1><color=#00000000>{space}</color></size>");
         }
     }
 }

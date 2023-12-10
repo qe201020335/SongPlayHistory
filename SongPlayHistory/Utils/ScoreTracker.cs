@@ -36,6 +36,7 @@ namespace SongPlayHistory.Utils
             _rawScore = 0;
             _modifiedScore = 0;
             EnergyDidReach0 = false;
+            FailScoreRecord = null;
             _notesPassed = 0;
             
             _energyCounter.gameEnergyDidReach0Event -= OnEnergyDidReach0;

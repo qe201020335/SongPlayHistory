@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using IPA.Loader;
 using SiraUtil.Logging;
+using SongPlayHistory.SongPlayData;
 using SongPlayHistory.VoteTracker;
 using Zenject;
 
@@ -11,7 +12,7 @@ namespace SongPlayHistory.Installers
 
         public override void InstallBindings()
         {
-            Container.BindInterfacesAndSelfTo<RecordsManager>().AsSingle();
+            Container.BindInterfacesTo<RecordsManager>().AsSingle();
             var bsVoting = PluginManager.GetPluginFromId(Plugin.BeatSaverVotingId) != null;
 
             if (bsVoting)
