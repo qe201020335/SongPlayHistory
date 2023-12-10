@@ -17,16 +17,6 @@ namespace SongPlayHistory.UI
 {
     internal class SPHUI: IInitializable, IDisposable
     {
-
-        private readonly LevelStatsView _levelStatsView;
-
-        private readonly LevelParamsPanel _levelParamsPanel;
-        
-        private readonly StandardLevelDetailViewController _levelDetailViewController;
-
-        [Inject]
-        private readonly SiraLog _logger = null!;
-
         [Inject]
         private readonly RecordsManager _recordsManager = null!;
 
@@ -34,18 +24,85 @@ namespace SongPlayHistory.UI
         private readonly PlayerDataModel _playerDataModel = null!;
 
         [Inject]
-        private readonly HoverHintController _hoverHintController = null!;
-
-        [Inject]
         private readonly ResultsViewController _resultsViewController = null!;
+        
+        private readonly SiraLog _logger = null!;
+        
+        private readonly StandardLevelDetailViewController _levelDetailViewController;
+        
+        private readonly HoverHint _hoverHint;
 
-        public SPHUI(PlatformLeaderboardViewController leaderboardViewController, StandardLevelDetailViewController levelDetailViewController)
+        private readonly TMP_Text _playCount;
+
+        public SPHUI(PlatformLeaderboardViewController leaderboardViewController, StandardLevelDetailViewController levelDetailViewController,
+            HoverHintController hoverHintController, SiraLog logger)
         {
-            _levelStatsView = leaderboardViewController.GetField<LevelStatsView, PlatformLeaderboardViewController>("_levelStatsView");
-            
             _levelDetailViewController = levelDetailViewController;
+            _logger = logger;
+            
+            var levelStatsView = leaderboardViewController.GetField<LevelStatsView, PlatformLeaderboardViewController>("_levelStatsView");
             var levelDetailView = levelDetailViewController.GetField<StandardLevelDetailView, StandardLevelDetailViewController>("_standardLevelDetailView");
-            _levelParamsPanel = levelDetailView.GetField<LevelParamsPanel, StandardLevelDetailView>("_levelParamsPanel");
+            var levelParamsPanel = levelDetailView.GetField<LevelParamsPanel, StandardLevelDetailView>("_levelParamsPanel");
+
+            try
+            {
+                _logger.Info("Preparing SPU UI");
+                _hoverHint = PrepareHoverHint((levelStatsView.transform as RectTransform)!, levelParamsPanel, hoverHintController);
+                _playCount = PreparePlayCount(levelStatsView);
+            }
+            catch (Exception ex)
+            {
+                _logger.Critical($"Failed to prepare SPU UI, {nameof(ex)}: {ex.Message}");
+                _logger.Error(ex);
+            }
+        }
+        
+        private HoverHint PrepareHoverHint(RectTransform parent, LevelParamsPanel levelParamsPanel, HoverHintController hoverHintController)
+        {
+            _logger.Debug("Preparing hover area for play history");
+            var template = levelParamsPanel.GetComponentsInChildren<RectTransform>().First(x => x.name == "NotesCount");
+            var label = UObject.Instantiate(template, parent);
+            label.name = "SPH HoverArea";
+            label.MatchParent();
+            UObject.Destroy(label.Find("Icon").gameObject);
+            UObject.Destroy(label.Find("ValueText").gameObject);
+            UObject.Destroy(label.GetComponentInChildren<HoverHint>());
+            UObject.Destroy(label.GetComponentInChildren<LocalizedHoverHint>());
+
+            var hoverHint = label.gameObject.AddComponent<HoverHint>();
+            hoverHint.SetField("_hoverHintController", hoverHintController);
+            hoverHint.text = "";
+            return hoverHint;
+        }
+
+        private TMP_Text PreparePlayCount(LevelStatsView levelStatsView)
+        {
+            _logger.Debug("Preparing extra level stats ui for play count");
+            var maxCombo = levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "MaxCombo");
+            var highscore = levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "Highscore");
+            var maxRank = levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "MaxRank");
+
+            var playCount = UObject.Instantiate(maxCombo, levelStatsView.transform);
+            playCount.name = "SPH PlayCount";
+
+            const float w = 0.225f;
+            maxCombo.anchorMin = new Vector2(0f, .5f);
+            maxCombo.anchorMax = new Vector2(1 * w, .5f);
+            highscore.anchorMin = new Vector2(1 * w, .5f);
+            highscore.anchorMax = new Vector2(2 * w, .5f);
+            maxRank.anchorMin = new Vector2(2 * w, .5f);
+            maxRank.anchorMax = new Vector2(3 * w, .5f);
+            playCount.anchorMin = new Vector2(3 * w, .5f);
+            playCount.anchorMax = new Vector2(4 * w, .5f);
+                    
+            var title = playCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Title");
+            // The text behind the title of the cloned maxCombo component is localized, so we need 
+            // to destroy the localized component so that we can change its text to "Play Count", 
+            // otherwise the localized text is retained in favour of ours
+            UObject.Destroy(title.GetComponentInChildren<LocalizedTextMeshProUGUI>());
+            title.text = "Play Count";
+            var text = playCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Value");
+            return text;
         }
         
         
@@ -64,95 +121,6 @@ namespace SongPlayHistory.UI
             _levelDetailViewController.didChangeDifficultyBeatmapEvent -= OnDifficultyChanged;
             _levelDetailViewController.didChangeContentEvent -= OnContentChanged;
             _resultsViewController.continueButtonPressedEvent -= OnPlayResultDismiss;
-
-            _hoverHint = null;
-            _playCount = null;
-        }
-
-        private HoverHint? _hoverHint;
-        private readonly object _hoverHintLock = new();
-        private HoverHint HoverHint
-        {
-            get
-            {
-                lock (_hoverHintLock)
-                {
-                    if (_hoverHint == null)
-                    {
-                        _hoverHint = _levelStatsView.GetComponentsInChildren<HoverHint>().FirstOrDefault(x => x.name == "HoverArea");
-                    }
-                    
-                    if (_hoverHint != null)
-                    {
-                        return _hoverHint;
-                    }
-                    
-                    _logger.Debug("HoverHint not found, making a new one");
-                    var template = _levelParamsPanel.GetComponentsInChildren<RectTransform>().First(x => x.name == "NotesCount");
-                    var label = UObject.Instantiate(template, _levelStatsView.transform);
-                    label.name = "HoverArea";
-                    label.transform.MatchParent();
-                    UObject.Destroy(label.transform.Find("Icon").gameObject);
-                    UObject.Destroy(label.transform.Find("ValueText").gameObject);
-                    UObject.DestroyImmediate(label.GetComponentInChildren<HoverHint>());
-                    UObject.Destroy(label.GetComponentInChildren<LocalizedHoverHint>());
-
-                    _hoverHint = label.gameObject.AddComponent<HoverHint>();
-                    _hoverHint.SetField("_hoverHintController", _hoverHintController);
-                    _hoverHint.text = "";
-                    
-                    return _hoverHint;
-                }
-            }
-        }
-
-        private RectTransform? _playCount;
-        private readonly object _playCountLock = new();
-        private RectTransform PlayCount
-        {
-            get
-            {
-                lock (_playCountLock)
-                {
-                    if (_playCount == null)
-                    {
-                        _playCount = _levelStatsView.GetComponentsInChildren<RectTransform>().FirstOrDefault(x => x.name == "PlayCount");
-                    }
-
-                    if (_playCount != null)
-                    {
-                        return _playCount;
-                    }
-
-                    _logger.Debug("PlayCount text not found, making a new one");
-                
-                    var maxCombo = _levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "MaxCombo");
-                    var highscore = _levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "Highscore");
-                    var maxRank = _levelStatsView.GetComponentsInChildren<RectTransform>().First(x => x.name == "MaxRank");
-
-                    _playCount = UObject.Instantiate(maxCombo, _levelStatsView.transform);
-                    _playCount.name = "PlayCount";
-
-                    const float w = 0.225f;
-                    (maxCombo.transform as RectTransform)!.anchorMin = new Vector2(0f, .5f);
-                    (maxCombo.transform as RectTransform)!.anchorMax = new Vector2(1 * w, .5f);
-                    (highscore.transform as RectTransform)!.anchorMin = new Vector2(1 * w, .5f);
-                    (highscore.transform as RectTransform)!.anchorMax = new Vector2(2 * w, .5f);
-                    (maxRank.transform as RectTransform)!.anchorMin = new Vector2(2 * w, .5f);
-                    (maxRank.transform as RectTransform)!.anchorMax = new Vector2(3 * w, .5f);
-                    (_playCount.transform as RectTransform)!.anchorMin = new Vector2(3 * w, .5f);
-                    (_playCount.transform as RectTransform)!.anchorMax = new Vector2(4 * w, .5f);
-                    
-                    var title = _playCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Title");
-                    // The text behind the title of the cloned maxCombo component is localized, so we need 
-                    // to destroy the localized component so that we can change its text to "Play Count", 
-                    // otherwise the localized text is retained in favour of ours
-                    UObject.Destroy(title.GetComponentInChildren<LocalizedTextMeshProUGUI>());
-                    title.text = "Play Count";
-                    
-                    return _playCount;
-                }
-            }
         }
         
         private void OnDifficultyChanged(StandardLevelDetailViewController _, IDifficultyBeatmap beatmap)
@@ -198,7 +166,7 @@ namespace SongPlayHistory.UI
             
             if (records.Count == 0)
             {
-                HoverHint.text = "No record";
+                _hoverHint.text = "No record";
                 return;
             }
 
@@ -275,14 +243,13 @@ namespace SongPlayHistory.UI
                 builder.AppendLine();
             }
             
-            HoverHint.text = builder.ToString();
+            _hoverHint.text = builder.ToString();
         }
 
         private void SetStats(IDifficultyBeatmap beatmap)
         {
             var stats = _playerDataModel.playerData.GetPlayerLevelStatsData(beatmap.level.levelID, beatmap.difficulty, beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic);
-            var text = PlayCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Value");
-            text.text = stats.playCount.ToString();
+            _playCount.text = stats.playCount.ToString();
         }
     }
 }
