@@ -8,7 +8,6 @@ using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
 using SongPlayHistory.Utils;
-using SongPlayHistory.VoteTracker;
 using TMPro;
 using UnityEngine;
 using Zenject;
@@ -149,7 +148,7 @@ namespace SongPlayHistory.UI
                     // to destroy the localized component so that we can change its text to "Play Count", 
                     // otherwise the localized text is retained in favour of ours
                     UObject.Destroy(title.GetComponentInChildren<LocalizedTextMeshProUGUI>());
-                    title.SetText("Play Count");
+                    title.text = "Play Count";
                     
                     return _playCount;
                 }
@@ -180,6 +179,7 @@ namespace SongPlayHistory.UI
         {
             if (beatmap == null) return;
             _logger.Info("Updating SPH UI");
+            _logger.Debug($"{beatmap.level.songName} {beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName} {beatmap.difficulty}");
             try
             {
                 SetRecords(beatmap);
@@ -282,7 +282,7 @@ namespace SongPlayHistory.UI
         {
             var stats = _playerDataModel.playerData.GetPlayerLevelStatsData(beatmap.level.levelID, beatmap.difficulty, beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic);
             var text = PlayCount.GetComponentsInChildren<TextMeshProUGUI>().First(x => x.name == "Value");
-            text.SetText(stats.playCount.ToString());
+            text.text = stats.playCount.ToString();
         }
     }
 }

@@ -37,7 +37,7 @@ namespace SongPlayHistory
             _harmony = new Harmony(HarmonyId);
 
             PluginConfig.Instance = config.Generated<PluginConfig>();
-            BSMLSettings.instance.AddSettingsMenu("Song Play History", "SongPlayHistory.UI.Settings.bsml", SettingsController.instance);
+            BSMLSettings.instance.AddSettingsMenu("Song Play History", "SongPlayHistory.UI.Settings.bsml", new SettingsController());
             
             zenjector.UseLogger();
             zenjector.Install<ScoreTrackerInstaller>(Location.MultiPlayer | Location.StandardPlayer);

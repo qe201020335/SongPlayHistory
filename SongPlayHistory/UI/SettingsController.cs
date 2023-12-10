@@ -1,10 +1,9 @@
 ﻿using BeatSaberMarkupLanguage.Attributes;
-using BeatSaberMarkupLanguage.Util;
 using SongPlayHistory.Configuration;
 
 namespace SongPlayHistory.UI
 {
-    public class SettingsController : PersistentSingleton<SettingsController>
+    public class SettingsController
     {
         [UIValue("show-failed")]
         public bool ShowFailed
