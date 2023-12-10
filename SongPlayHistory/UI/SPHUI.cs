@@ -52,7 +52,7 @@ namespace SongPlayHistory.UI
             }
             catch (Exception ex)
             {
-                _logger.Critical($"Failed to prepare SPU UI, {nameof(ex)}: {ex.Message}");
+                _logger.Critical($"Failed to prepare SPU UI: {ex.Message}");
                 _logger.Error(ex);
             }
         }
@@ -153,7 +153,7 @@ namespace SongPlayHistory.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Failed to update SPH ui, {nameof(ex)}: {ex.Message}");
+                _logger.Error($"Failed to update SPH ui, {ex.GetType().Name}: {ex.Message}");
                 _logger.Debug(ex);
             }
         }

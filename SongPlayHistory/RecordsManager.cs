@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using BS_Utils.Gameplay;
 using BS_Utils.Utilities;
+using IPA.Utilities;
 using ModestTree;
 using Newtonsoft.Json;
 using SiraUtil.Logging;
@@ -16,9 +17,9 @@ namespace SongPlayHistory
 {
     internal class RecordsManager: IInitializable, IDisposable
     {
-        private readonly string DataFile = Path.Combine(Environment.CurrentDirectory, "UserData", "SongPlayData.json");
+        private readonly string DataFile = Path.Combine(UnityGame.UserDataPath, "SongPlayData.json");
 
-        private Dictionary<string, IList<Record>> Records { get; set; } = new Dictionary<string, IList<Record>>();
+        private Dictionary<LevelMapKey, IList<Record>> Records { get; set; } = new();
 
         [Inject]
         private readonly SiraLog _logger = null!;
@@ -30,64 +31,53 @@ namespace SongPlayHistory
             {
                 return;
             }
-
-            // Read records from a data file.
-            var text = File.ReadAllText(DataFile);
-            try
+            
+            if (!LoadRecords(DataFile) || Records.Count == 0)
             {
-                Records = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
-                if (Records == null)
-                {
-                    throw new JsonReaderException("Unable to deserialize an empty JSON string.");
-                }
-            }
-            catch (JsonException ex)
-            {
-                // The data file is corrupted.
-                _logger.Error($"Failed to load history: {ex.Message}");
-                _logger.Error(ex);
-
+                _logger.Warn("Did not load any records from file. Will try to restore from a backup.");
                 // Try to restore from a backup.
                 var backup = new FileInfo(Path.ChangeExtension(DataFile, ".bak"));
                 if (backup.Exists && backup.Length > 0)
                 {
                     _logger.Notice("Restoring from a backup");
-                    text = File.ReadAllText(backup.FullName);
-
-                    Records = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
-                    if (Records == null)
-                    {
-                        // Fail hard to prevent overwriting any previous data or breaking the game.
-                        throw new Exception("Failed to restore data.");
-                    }
+                    LoadRecords(backup.FullName);
                 }
                 else
                 {
                     // There's nothing more we can try. Overwrite the file.
-                    Records = new Dictionary<string, IList<Record>>();
+                    _logger.Warn("Backup not found.");
+                    Records = new Dictionary<LevelMapKey, IList<Record>>();
                 }
-                SaveRecordsToFile();
             }
             
-            // _logger.Info("Cleaning up passed NF records");
-            // foreach (var record in Records.Values.SelectMany(i => i))
-            // {
-            //     if (record.LastNote < 0 && ((Param)record.Param).HasFlag(Param.NoFail))
-            //     {
-            //         // if the level is cleared but has the NF flag, remove NF
-            //         record.Param = (int) ((Param)record.Param & ~Param.NoFail);
-            //     } 
-            // } // This will affect all old NF records.
-            
+            SaveRecordsToFile();
+            _logger.Info($"Loaded {Records.Select(pair => pair.Value.Count).Sum()} records from {Records.Count} levels.");
             
             // TODO remove bad records?
-            
-            SaveRecordsToFile();
 
             BSEvents.gameSceneLoaded -= OnGameSceneLoaded;
             BSEvents.gameSceneLoaded += OnGameSceneLoaded;
             BSEvents.LevelFinished -= OnLevelFinished;
             BSEvents.LevelFinished += OnLevelFinished;
+        }
+
+        private bool LoadRecords(string path)
+        {
+            _logger.Debug($"Loading history from {path}");
+            try
+            {
+                // Read records from a data file.
+                var text = File.ReadAllText(path);
+                var records = JsonConvert.DeserializeObject<Dictionary<LevelMapKey, IList<Record>>>(text, new RecordJsonConvertor());
+                Records = records ?? throw new Exception();
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.Error("Unable to deserialize song play records.");
+                _logger.Error(e);
+                return false;
+            }
         }
 
         public void Dispose()
@@ -148,15 +138,17 @@ namespace SongPlayHistory
         public IList<Record> GetRecords(IDifficultyBeatmap beatmap)
         {
             var config = PluginConfig.Instance;
-            var beatmapCharacteristicName = beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
-            var difficulty = $"{beatmap.level.levelID}___{(int)beatmap.difficulty}___{beatmapCharacteristicName}";
 
-            if (Records.TryGetValue(difficulty, out IList<Record> records))
+            if (Records.TryGetValue(new LevelMapKey(beatmap), out var records))
             {
                 // LastNote = -1 (cleared), 0 (undefined), n (failed)
-                var filtered = config.ShowFailed ? records : records.Where(s => s.LastNote <= 0);
-                var ordered = filtered.OrderByDescending(s => config.SortByDate ? s.Date : s.ModifiedScore);
-                return ordered.ToList();
+                var processed =
+                    from record in records
+                    where config.ShowFailed || record.LastNote <= 0
+                    orderby config.SortByDate ? record.Date : record.ModifiedScore descending
+                    select record;
+                
+                return processed.ToList();
             }
 
             return new List<Record>();
@@ -236,19 +228,18 @@ namespace SongPlayHistory
 
             _logger.Info($"Saving result. Record: {record.ToShortString()}");
 
-            var beatmapCharacteristicName = beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
-            var difficulty = $"{beatmap.level.levelID}___{(int)beatmap.difficulty}___{beatmapCharacteristicName}";
+            var key = new LevelMapKey(beatmap);
 
-            if (!Records.ContainsKey(difficulty))
+            if (!Records.ContainsKey(key))
             {
-                Records.Add(difficulty, new List<Record>());
+                Records.Add(key, new List<Record>());
             }
-            Records[difficulty].Add(record);
+            Records[key].Add(record);
 
             // Save to a file. We do this synchronously because the overhead is small. (400 ms / 15 MB, 60 ms / 1 MB)
             SaveRecordsToFile();
 
-            _logger.Info($"Saved a new record {difficulty} ({result.modifiedScore}).");
+            _logger.Info($"Saved a new record ({result.modifiedScore}).");
         }
 
         private void SaveRecordsToFile()
@@ -257,13 +248,14 @@ namespace SongPlayHistory
             {
                 if (Records.Count > 0)
                 {
-                    var serialized = JsonConvert.SerializeObject(Records, Formatting.Indented);
+                    var serialized = JsonConvert.SerializeObject(Records, Formatting.Indented, new RecordJsonConvertor());
                     File.WriteAllText(DataFile, serialized);
                 }
             }
             catch (Exception ex) // IOException, JsonException
             {
-                _logger.Error(ex.ToString());
+                _logger.Error($"Failed to save records to file: {ex.Message}");
+                _logger.Error(ex);
             }
         }
 
