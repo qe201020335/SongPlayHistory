@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using HMUI;
@@ -7,6 +8,7 @@ using Polyglot;
 using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
+using SongPlayHistory.SongPlayData;
 using SongPlayHistory.Utils;
 using TMPro;
 using UnityEngine;
@@ -18,7 +20,7 @@ namespace SongPlayHistory.UI
     internal class SPHUI: IInitializable, IDisposable
     {
         [Inject]
-        private readonly RecordsManager _recordsManager = null!;
+        private readonly IRecordManager _recordsManager = null!;
 
         [Inject]
         private readonly PlayerDataModel _playerDataModel = null!;
@@ -33,6 +35,8 @@ namespace SongPlayHistory.UI
         private readonly HoverHint _hoverHint;
 
         private readonly TMP_Text _playCount;
+        
+        private static readonly Dictionary<LevelMapKey, Tuple<int, int, bool>> ScoringCache = new(); // [key: (MaxScore, NoteCount, isV2Score)]
 
         public SPHUI(PlatformLeaderboardViewController leaderboardViewController, StandardLevelDetailViewController levelDetailViewController,
             HoverHintController hoverHintController, SiraLog logger)
@@ -160,52 +164,82 @@ namespace SongPlayHistory.UI
         
         private async void SetRecords(IDifficultyBeatmap beatmap)
         {
-            var records = _recordsManager.GetRecords(beatmap);
+            var config = PluginConfig.Instance;
+            var key = new LevelMapKey(beatmap);
+            var records =
+                from record in _recordsManager.GetRecords(key)
+                where config.ShowFailed || record.LevelEnd == LevelEndType.Cleared
+                select record;
             
-            if (records.Count == 0)
+            records = config.SortByDate 
+                ? records.OrderByDescending(record => record.LocalTime) 
+                : records.OrderByDescending(record => record.ModifiedScore);
+
+            var truncated = records.Take(10).ToList();
+            
+            if (truncated.Count == 0)
             {
                 _hoverHint.text = "No record";
                 return;
             }
-
-            var beatmapData = await beatmap.GetBeatmapDataAsync(beatmap.GetEnvironmentInfo(), _playerDataModel.playerData.playerSpecificSettings);
-            var notesCount = beatmapData.cuttableNotesCount;
-            var maxScore = ScoreModel.ComputeMaxMultipliedScoreForBeatmap(beatmapData);
-            var builder = new StringBuilder(200);
             
-            // we can use the original v2 scoring method to calculate the adjusted max score if there is no slider or burst
-            var v2Score = !beatmapData.GetBeatmapDataItems<SliderData>(0).Any();
+            int fullMaxScore, notesCount;
+            bool isV2Score;
 
-            static string Space(int len)
+            if (ScoringCache.TryGetValue(key, out var cache))
             {
-                var space = string.Concat(Enumerable.Repeat("_", len));
-                return $"<size=1><color=#00000000>{space}</color></size>";
+                (fullMaxScore, notesCount, isV2Score) = cache;
+            }
+            else
+            {
+                var beatmapData = await beatmap.GetBeatmapDataAsync(beatmap.GetEnvironmentInfo(), _playerDataModel.playerData.playerSpecificSettings);
+                notesCount = beatmapData.cuttableNotesCount;
+                fullMaxScore = ScoreModel.ComputeMaxMultipliedScoreForBeatmap(beatmapData);
+                // we can use the original v2 scoring method to calculate the adjusted max score if there is no slider or burst
+                isV2Score = !beatmapData.GetBeatmapDataItems<SliderData>(0).Any();
+                ScoringCache[key] = Tuple.Create(fullMaxScore, notesCount, isV2Score);
             }
             
-            _logger.Debug($"Total number of records: {records.Count}");
-            var truncated = records.Take(10).ToList();
-            
+            var builder = new StringBuilder(200);
             foreach (var r in truncated)
             {
-                _logger.Trace($"Record: {r.ToShortString()}");
-                var localDateTime = DateTimeOffset.FromUnixTimeMilliseconds(r.Date).LocalDateTime;
+                _logger.Trace($"Record: {r}");
+                builder.TMPSpace(truncated.Count - truncated.IndexOf(r) - 1);
+                builder.Append($"<size=2.5><color=#1a252bff> {r.LocalTime:d}</color></size>");
+                builder.Append($"<size=3.5><color=#0f4c75ff> {r.ModifiedScore}</color></size>");
                 
-                var hasMaxScoreSaved = r.MaxRawScore != null;
-                var levelFinished = r.LastNote < 0;
-                
-                var adjMaxScore = r.MaxRawScore ?? r.CalculatedMaxRawScore ?? ScoreUtils.CalculateV2MaxScore(r.LastNote);
-                var denom = !levelFinished && PluginConfig.Instance.AverageAccuracy ? adjMaxScore : maxScore;
-                var accuracy = denom == 0 ? 100 : r.RawScore / (float)denom * 100f;
-                // only display acc if we can get the max scores with the data we have on hand
-                var shouldShowAcc = levelFinished || hasMaxScoreSaved || v2Score || !PluginConfig.Instance.AverageAccuracy;
+                var levelFinished = r.LevelEnd == LevelEndType.Cleared;
 
-                if (v2Score && r.MaxRawScore == null) r.CalculatedMaxRawScore = adjMaxScore;
+                #region acc
+                var denominator = -1;
+                if (levelFinished || !config.AverageAccuracy)
+                {
+                    denominator = fullMaxScore;
+                }
+                else if (r.MaxRawScore != null)
+                {
+                    denominator = r.MaxRawScore.Value;
+                }
+                else if (isV2Score)
+                {
+                    denominator = ScoreUtils.CalculateV2MaxScore(r.LastNote);
+                }
+                // Only display acc if we can get the max scores with the data we have on hand.
+                // Some soft failed record saved total score instead of at the time of fail   
+                // result in the the saved score be much greater than the max score
+                if (denominator > 0 && r.RawScore <= denominator)
+                {
+                    var accuracy = r.RawScore / (float)denominator * 100f;
+                    builder.Append($"<size=3.5><color=#368cc6ff> {accuracy:0.00}%</color></size>");
+                }
+                #endregion
 
-                var param = (Param) r.Param;
+                #region modifiers
+                var param = r.Params;
                 if (levelFinished && r.ModifiedScore == r.RawScore)
                 {
                     // NF penalty definitely not triggered 
-                    param &= ~Param.NoFail;
+                    param &= ~SongPlayParam.NoFail;
                 }
 
                 var paramString = param.ToParamString();
@@ -213,23 +247,17 @@ namespace SongPlayHistory.UI
                 {
                     paramString = "?!";
                 }
-                var notesRemaining = notesCount - r.LastNote;
-
-                builder.Append(Space(truncated.Count - truncated.IndexOf(r) - 1));
-                builder.Append($"<size=2.5><color=#1a252bff>{localDateTime:d}</color></size>");
-                builder.Append($"<size=3.5><color=#0f4c75ff> {r.ModifiedScore}</color></size>");
-                if (shouldShowAcc && r.RawScore <= denom)
-                {
-                    // some soft failed record saved total score instead of at the time of fail   
-                    // result in the the saved score be much greater than the max score
-                    builder.Append($"<size=3.5><color=#368cc6ff> {accuracy:0.00}%</color></size>");
-                }
+                
                 if (paramString.Length > 0)
                 {
                     builder.Append($"<size=2><color=#1a252bff> {paramString}</color></size>");
                 }
-                if (PluginConfig.Instance.ShowFailed)
+                #endregion
+                
+                #region level end state
+                if (config.ShowFailed)
                 {
+                    var notesRemaining = notesCount - r.LastNote;
                     if (r.LastNote == -1)
                         builder.Append($"<size=2.5><color=#1a252bff> cleared</color></size>");
                     else if (r.LastNote == 0) // old record (success, fail, or practice)
@@ -237,7 +265,9 @@ namespace SongPlayHistory.UI
                     else
                         builder.Append($"<size=2.5><color=#ff5722ff> +{notesRemaining} notes</color></size>");
                 }
-                builder.Append(Space(truncated.IndexOf(r)));
+                #endregion
+
+                builder.TMPSpace(truncated.IndexOf(r));
                 builder.AppendLine();
             }
             
