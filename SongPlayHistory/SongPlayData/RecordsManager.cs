@@ -19,7 +19,7 @@ namespace SongPlayHistory.SongPlayData
     {
         private readonly string DataFile = Path.Combine(UnityGame.UserDataPath, "SongPlayData.json");
 
-        private Dictionary<LevelMapKey, IList<Record>> Records { get; set; } = new();
+        private Dictionary<string, IList<Record>> Records { get; set; } = new();
 
         [Inject]
         private readonly SiraLog _logger = null!;
@@ -47,7 +47,7 @@ namespace SongPlayHistory.SongPlayData
                 {
                     // There's nothing more we can try. Overwrite the file.
                     _logger.Warn("Backup not found.");
-                    Records = new Dictionary<LevelMapKey, IList<Record>>();
+                    Records = new Dictionary<string, IList<Record>>();
                 }
             }
             else
@@ -66,14 +66,14 @@ namespace SongPlayHistory.SongPlayData
             BSEvents.LevelFinished += OnLevelFinished;
         }
 
-        private bool LoadRecords(string path, out Dictionary<LevelMapKey, IList<Record>> records)
+        private bool LoadRecords(string path, out Dictionary<string, IList<Record>> records)
         {
             _logger.Debug($"Loading history from {path}");
             try
             {
                 // Read records from a data file.
                 var text = File.ReadAllText(path);
-                var deserialized = JsonConvert.DeserializeObject<Dictionary<LevelMapKey, IList<Record>>>(text, new RecordJsonConvertor());
+                var deserialized = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
                 records = deserialized ?? throw new Exception();
                 return true;
             }
@@ -81,7 +81,7 @@ namespace SongPlayHistory.SongPlayData
             {
                 _logger.Error("Unable to deserialize song play records.");
                 _logger.Error(e);
-                records = new Dictionary<LevelMapKey, IList<Record>>();
+                records = new Dictionary<string, IList<Record>>();
                 return false;
             }
         }
@@ -150,7 +150,7 @@ namespace SongPlayHistory.SongPlayData
         public IList<ISongPlayRecord> GetRecords(LevelMapKey key)
         {
             _logger.Debug($"Getting records for {key}");
-            if (Records.TryGetValue(key, out var records))
+            if (Records.TryGetValue(key.ToOldKey(), out var records))
             {
                 _logger.Debug($"Total number of records: {records.Count}");
                 return records.Copy();
@@ -158,11 +158,6 @@ namespace SongPlayHistory.SongPlayData
 
             _logger.Debug("No records found.");
             return new List<ISongPlayRecord>();
-        }
-        
-        public IDictionary<LevelMapKey, IList<ISongPlayRecord>> GetAllRecords()
-        {
-            return Records.ToDictionary(pair => pair.Key, pair => pair.Value.Copy());
         }
 
         private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer, bool energyDidReach0, ScoreRecord? failRecord)
@@ -240,7 +235,7 @@ namespace SongPlayHistory.SongPlayData
 
             _logger.Info($"Saving result. Record: {record}");
 
-            var key = new LevelMapKey(beatmap);
+            var key = new LevelMapKey(beatmap).ToOldKey();
 
             if (!Records.ContainsKey(key))
             {
@@ -260,7 +255,7 @@ namespace SongPlayHistory.SongPlayData
             {
                 if (Records.Count > 0)
                 {
-                    var serialized = JsonConvert.SerializeObject(Records, Formatting.Indented, new RecordJsonConvertor());
+                    var serialized = JsonConvert.SerializeObject(Records, Formatting.Indented);
                     File.WriteAllText(DataFile, serialized);
                 }
             }
@@ -304,7 +299,7 @@ namespace SongPlayHistory.SongPlayData
             }
         }
 
-        private static int SumRecords(Dictionary<LevelMapKey, IList<Record>> records)
+        private static int SumRecords(Dictionary<string, IList<Record>> records)
         {
             return records.Select(pair => pair.Value.Count).Sum();
         }
