@@ -9,7 +9,7 @@ using Zenject;
 
 namespace SongPlayHistory.SongPlayData;
 
-public class ScoringCacheManager
+internal class ScoringCacheManager: IScoringCacheManager
 {
     [Inject]
     private readonly PlayerDataModel _playerDataModel = null!;
@@ -17,7 +17,7 @@ public class ScoringCacheManager
     [Inject]
     private readonly SiraLog _logger = null!;
     
-    //TODO use persistent storage cache
+    //TODO use persistent storage cache if needed
     private readonly Dictionary<LevelMapKey, LevelScoringCache> _cache = new Dictionary<LevelMapKey, LevelScoringCache>();
     
     public async Task<LevelScoringCache> GetScoringInfo(IDifficultyBeatmap beatmap, CancellationToken cancellationToken = new())

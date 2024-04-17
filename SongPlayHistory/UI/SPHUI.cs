@@ -31,7 +31,7 @@ namespace SongPlayHistory.UI
         private readonly ResultsViewController _resultsViewController = null!;
         
         [Inject]
-        private readonly ScoringCacheManager _scoringCacheManager = null!;
+        private readonly IScoringCacheManager _scoringCacheManager = null!;
         
         private readonly SiraLog _logger = null!;
         
