@@ -27,8 +27,15 @@ Available in [ModAssistant](https://github.com/Assistant/ModAssistant) or on [Be
 - If you run into any problems, please contact me either via Discord _(Search me in the BSMG discord server)_ or by open an issue.
 
 ## For Modders
+### Vote Data
 - To access the vote data, use `Zenject` and inject `IVoteTracker`.
 - `IVoteTracker` is installed into `PCAppInit`, using `SiraUtil`'s `Location.App`.
+### Play History Data
+- Inject `IRecordManager`
+- `IRecordManager` is installed into `PCAppInit`, using `SiraUtil`'s `Location.App`.
+### Scoring Data Cache
+- Inject `IScoringCacheManager`
+- `IScoringCacheManager` is installed into `PCAppInit`, using `SiraUtil`'s `Location.App`.
 
 ## Credits
 - [swift-kim](https://github.com/swift-kim)
