@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using HMUI;
 using IPA.Utilities;
 using Polyglot;
@@ -28,6 +30,9 @@ namespace SongPlayHistory.UI
         [Inject]
         private readonly ResultsViewController _resultsViewController = null!;
         
+        [Inject]
+        private readonly ScoringCacheManager _scoringCacheManager = null!;
+        
         private readonly SiraLog _logger = null!;
         
         private readonly StandardLevelDetailViewController _levelDetailViewController;
@@ -36,7 +41,7 @@ namespace SongPlayHistory.UI
 
         private readonly TMP_Text _playCount;
         
-        private static readonly Dictionary<LevelMapKey, Tuple<int, int, bool>> ScoringCache = new(); // [key: (MaxScore, NoteCount, isV2Score)]
+        private CancellationTokenSource? _cts;
 
         public SPHUI(PlatformLeaderboardViewController leaderboardViewController, StandardLevelDetailViewController levelDetailViewController,
             HoverHintController hoverHintController, SiraLog logger)
@@ -125,6 +130,10 @@ namespace SongPlayHistory.UI
             _levelDetailViewController.didChangeDifficultyBeatmapEvent -= OnDifficultyChanged;
             _levelDetailViewController.didChangeContentEvent -= OnContentChanged;
             _resultsViewController.continueButtonPressedEvent -= OnPlayResultDismiss;
+            
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
         }
         
         private void OnDifficultyChanged(StandardLevelDetailViewController _, IDifficultyBeatmap beatmap)
@@ -150,20 +159,37 @@ namespace SongPlayHistory.UI
             if (beatmap == null) return;
             _logger.Info("Updating SPH UI");
             _logger.Debug($"{beatmap.level.songName} {beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName} {beatmap.difficulty}");
-            try
+            
+            SetStats(beatmap);
+
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+            Task.Run(async () =>
             {
-                SetRecords(beatmap);
-                SetStats(beatmap);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to update SPH ui, {ex.GetType().Name}: {ex.Message}");
-                _logger.Debug(ex);
-            }
+                try
+                {
+                    await SetRecords(beatmap, token);
+                }
+                catch (OperationCanceledException e) when (e.CancellationToken == token)
+                {
+                    _logger.Debug($"Update cancelled: {beatmap.level.songName}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Failed to update SPH ui, {ex.GetType().Name}: {ex.Message}");
+                    _logger.Debug(ex);
+                }
+            }, token);
         }
         
-        private async void SetRecords(IDifficultyBeatmap beatmap)
+        private async Task SetRecords(IDifficultyBeatmap beatmap, CancellationToken cancellationToken)
         {
+            _logger.Debug($"Setting records from Thread {Environment.CurrentManagedThreadId}");
+            
+            var task = _scoringCacheManager.GetScoringInfo(beatmap, cancellationToken);  // let it run in the background first
+           
             var config = PluginConfig.Instance;
             var key = new LevelMapKey(beatmap);
             var records =
@@ -177,28 +203,22 @@ namespace SongPlayHistory.UI
 
             var truncated = records.Take(10).ToList();
             
+            if (cancellationToken.IsCancellationRequested) return;
             if (truncated.Count == 0)
             {
                 _hoverHint.text = "No record";
                 return;
             }
             
-            int fullMaxScore, notesCount;
-            bool isV2Score;
+            // int fullMaxScore, notesCount;
+            // bool isV2Score;
 
-            if (ScoringCache.TryGetValue(key, out var cache))
-            {
-                (fullMaxScore, notesCount, isV2Score) = cache;
-            }
-            else
-            {
-                var beatmapData = await beatmap.GetBeatmapDataAsync(beatmap.GetEnvironmentInfo(), _playerDataModel.playerData.playerSpecificSettings);
-                notesCount = beatmapData.cuttableNotesCount;
-                fullMaxScore = ScoreModel.ComputeMaxMultipliedScoreForBeatmap(beatmapData);
-                // we can use the original v2 scoring method to calculate the adjusted max score if there is no slider or burst
-                isV2Score = !beatmapData.GetBeatmapDataItems<SliderData>(0).Any();
-                ScoringCache[key] = Tuple.Create(fullMaxScore, notesCount, isV2Score);
-            }
+            // then we get the result
+            var cache = await task;
+            
+            var fullMaxScore = cache.MaxMultipliedScore;
+            var notesCount = cache.NotesCount;
+            var isV2Score = cache.IsV2Score;
             
             var builder = new StringBuilder(200);
             foreach (var r in truncated)
@@ -270,7 +290,8 @@ namespace SongPlayHistory.UI
                 builder.TMPSpace(truncated.IndexOf(r));
                 builder.AppendLine();
             }
-            
+ 
+            if (cancellationToken.IsCancellationRequested) return;
             _hoverHint.text = builder.ToString();
         }
 
