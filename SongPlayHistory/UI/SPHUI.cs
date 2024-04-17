@@ -130,9 +130,7 @@ namespace SongPlayHistory.UI
 
         private void OnContentChanged(StandardLevelDetailViewController _, StandardLevelDetailViewController.ContentType contentType)
         {
-            if (contentType != StandardLevelDetailViewController.ContentType.Loading 
-                && contentType != StandardLevelDetailViewController.ContentType.Error
-                && contentType != StandardLevelDetailViewController.ContentType.NoAllowedDifficultyBeatmap)
+            if (contentType == StandardLevelDetailViewController.ContentType.OwnedAndReady)
             {
                 UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
             }
