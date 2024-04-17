@@ -7,22 +7,16 @@ namespace SongPlayHistory.Model
     {
         public readonly string LevelId;
         public readonly string CharacteristicName;
-        public readonly int Difficulty;
+        public readonly BeatmapDifficulty Difficulty;
 
         // Old key format:
         // $"{beatmap.level.levelID}___{(int)beatmap.difficulty}___{beatmapCharacteristicName}"
-        private static readonly Regex OldKeyRegex = new Regex(@"^(.*)___(\d+)___([a-zA-Z0-9]+)$");
 
-        private LevelMapKey(string levelId, string characteristicName, int difficulty)
+        internal LevelMapKey(string levelId, string characteristicName, BeatmapDifficulty difficulty)
         {
             LevelId = levelId;
             CharacteristicName = characteristicName;
             Difficulty = difficulty;
-        }
-
-        internal LevelMapKey(string levelId, string characteristicName, BeatmapDifficulty difficulty)
-            : this(levelId, characteristicName, DifficultyToInt(difficulty))
-        {
         }
 
         public LevelMapKey(IDifficultyBeatmap beatmap)
@@ -57,31 +51,7 @@ namespace SongPlayHistory.Model
 
         internal string ToOldKey()
         {
-            return $"{LevelId}___{Difficulty}___{CharacteristicName}";
-        }
-
-        internal static bool TryGetFromOldKey(string oldKey, out LevelMapKey key)
-        {
-            try
-            {
-                var match = OldKeyRegex.Match(oldKey);
-
-                if (!match.Success || match.Groups.Count != 4)
-                {
-                    key = default;
-                    return false;
-                }
-
-                var groups = match.Groups;
-                key = new LevelMapKey(groups[1].Value, groups[3].Value, int.Parse(groups[2].Value));
-                return true;
-            }
-            catch (Exception e)
-            {
-                Plugin.Log.Trace($"failed to parse old key: {oldKey} {e}");
-                key = default;
-                return false;
-            }
+            return $"{LevelId}___{DifficultyToInt(Difficulty)}___{CharacteristicName}";
         }
     }
 }

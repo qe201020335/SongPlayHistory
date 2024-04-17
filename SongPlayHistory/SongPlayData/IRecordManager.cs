@@ -9,5 +9,4 @@ public interface IRecordManager
     
     public IList<ISongPlayRecord> GetRecords(LevelMapKey key);
     
-    public IDictionary<LevelMapKey, IList<ISongPlayRecord>> GetAllRecords();
 }
