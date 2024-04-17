@@ -13,6 +13,7 @@ namespace SongPlayHistory.Installers
         public override void InstallBindings()
         {
             Container.BindInterfacesTo<RecordsManager>().AsSingle();
+            Container.BindInterfacesAndSelfTo<ScoringCacheManager>().AsSingle();
             var bsVoting = PluginManager.GetPluginFromId(Plugin.BeatSaverVotingId) != null;
 
             if (bsVoting)
