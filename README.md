@@ -2,7 +2,7 @@
 
 [![release](https://img.shields.io/github/v/release/qe201020335/SongPlayHistory?color=Green&style=for-the-badge)](https://github.com/qe201020335/SongPlayHistory/releases/latest)
 
-Track all your scores and song votes. This is the actively maintained fork of the [fork](https://github.com/Shadnix-was-taken/BeatSaber-SongPlayHistoryContinued) of the currently unmaintained [SongPlayHistory](https://github.com/swift-kim/SongPlayHistory) mod.
+Track all your scores and song votes. This is the actively maintained fork of the original [SongPlayHistory](https://github.com/swift-kim/SongPlayHistory) mod.
 
 > [!NOTE] 
 > For information on the Vote and Play history data API, see [For Modders](#for-modders).
