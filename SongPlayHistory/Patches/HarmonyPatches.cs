@@ -30,7 +30,7 @@ namespace SongPlayHistory
         }
 
         [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
-        public static void Postfix(LevelListTableCell __instance, IPreviewBeatmapLevel? level, bool isFavorite, 
+        public static void Postfix(LevelListTableCell __instance, BeatmapLevel? level, bool isFavorite, 
             Image ____favoritesBadgeImage, TextMeshProUGUI? ____songBpmText)
         {
             if (!PluginConfig.Instance.ShowVotes) return;

@@ -47,14 +47,14 @@ namespace SongPlayHistory.VoteTracker
             _tableView.RefreshCellsContent();
         }
 
-        internal void Vote(IPreviewBeatmapLevel level, VoteType voteType)
+        internal void Vote(BeatmapLevel level, VoteType voteType)
         {
             _voteTracker.Vote(level, voteType);
             _logger.Debug("Refreshing cells content");
             _tableView.RefreshCellsContent();
         }
         
-        internal bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
+        internal bool TryGetVote(BeatmapLevel level, out VoteType voteType)
         {
             return _voteTracker.TryGetVote(level, out voteType);
         }

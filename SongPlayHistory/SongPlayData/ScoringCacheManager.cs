@@ -15,15 +15,24 @@ internal class ScoringCacheManager: IScoringCacheManager
     private readonly PlayerDataModel _playerDataModel = null!;
     
     [Inject]
+    private readonly BeatmapLevelsModel _beatmapLevelsModel = null!;
+    
+    [Inject]
+    private readonly BeatmapDataLoader _beatmapDataLoader = null!;
+    
+    [Inject]
+    private readonly EnvironmentsListModel _environmentListModel = null!;
+    
+    [Inject]
     private readonly SiraLog _logger = null!;
     
     //TODO use persistent storage cache if needed
     private readonly Dictionary<LevelMapKey, LevelScoringCache> _cache = new Dictionary<LevelMapKey, LevelScoringCache>();
     
-    public async Task<LevelScoringCache> GetScoringInfo(IDifficultyBeatmap beatmap, CancellationToken cancellationToken = new())
+    public async Task<LevelScoringCache> GetScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel = null, CancellationToken cancellationToken = new())
     {
         _logger.Debug($"Get scoring cache from Thread {Environment.CurrentManagedThreadId}");
-        var cacheKey = new LevelMapKey(beatmap);
+        var cacheKey = new LevelMapKey(beatmapKey);
         
         lock (_cache)
         {
@@ -34,14 +43,49 @@ internal class ScoringCacheManager: IScoringCacheManager
         }
         
         cancellationToken.ThrowIfCancellationRequested();
-        // await Task.Delay(15000, cancellationToken); // simulate am extreme loading time
+        // await Task.Delay(15000, cancellationToken); // simulate an extreme loading time
+
+        if (beatmapLevel == null)
+        {
+            _logger.Warn("BeatmapLevel is null, getting from BeatmapLevelsModel.");
+            beatmapLevel = _beatmapLevelsModel.GetBeatmapLevel(beatmapKey.levelId);
+            if (beatmapLevel == null)
+            {
+                _logger.Error("Failed to get BeatmapLevel.");
+                throw new Exception("Failed to get BeatmapLevel.");
+            }
+        }
         
-        var beatmapData = await beatmap.GetBeatmapDataAsync(beatmap.GetEnvironmentInfo(), _playerDataModel.playerData.playerSpecificSettings);
+        _logger.Debug("Loading beat map level data from BeatmapLevelsModel.");
+        var loadResult = await _beatmapLevelsModel.LoadBeatmapLevelDataAsync(beatmapKey.levelId, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var notesCount = beatmapData.cuttableNotesCount;
+        if (loadResult.isError)
+        {
+            _logger.Error("Failed to get BeatmapLevelData.");
+            throw new Exception("Failed to load beat map level data.");
+        }
+        
+        var beatmapLevelData = loadResult.beatmapLevelData!;
+        
+        var basicBeatmapData = beatmapLevel.GetDifficultyBeatmapData(beatmapKey.beatmapCharacteristic, beatmapKey.difficulty);
+        var envName = basicBeatmapData.environmentName;
+        var envInfo = _environmentListModel.GetEnvironmentInfoBySerializedNameSafe(envName);
+        var beatmapData = await _beatmapDataLoader.LoadBeatmapDataAsync(
+                beatmapLevelData, 
+                beatmapKey, 
+                beatmapLevel.beatsPerMinute, 
+                false,
+                null,
+                null,
+                null,
+                false);
+
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        var notesCount = basicBeatmapData.notesCount;
         var fullMaxScore = ScoreModel.ComputeMaxMultipliedScoreForBeatmap(beatmapData);
         // we can use the original v2 scoring method to calculate the adjusted max score if there is no slider or burst
-        var isV2Score = !beatmapData.GetBeatmapDataItems<SliderData>(0).Any();
+        var isV2Score = !beatmapData!.GetBeatmapDataItems<SliderData>(0).Any();
         cancellationToken.ThrowIfCancellationRequested();
 
         var newCache = new LevelScoringCache
