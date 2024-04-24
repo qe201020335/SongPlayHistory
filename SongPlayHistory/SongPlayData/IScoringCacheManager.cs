@@ -6,5 +6,5 @@ namespace SongPlayHistory.SongPlayData;
 
 public interface IScoringCacheManager
 {
-    public Task<LevelScoringCache> GetScoringInfo(IDifficultyBeatmap beatmap, CancellationToken cancellationToken = new());
+    public Task<LevelScoringCache> GetScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel = null, CancellationToken cancellationToken = new());
 }

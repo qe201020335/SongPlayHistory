@@ -5,7 +5,7 @@ namespace SongPlayHistory.SongPlayData;
 
 public interface IRecordManager
 {
-    public IList<ISongPlayRecord> GetRecords(IDifficultyBeatmap beatmap);
+    public IList<ISongPlayRecord> GetRecords(BeatmapKey beatmap);
     
     public IList<ISongPlayRecord> GetRecords(LevelMapKey key);
     

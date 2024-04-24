@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HMUI;
 using IPA.Utilities;
-using Polyglot;
+using BGLib.Polyglot;
 using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
@@ -136,31 +136,31 @@ namespace SongPlayHistory.UI
             _cts = null;
         }
         
-        private void OnDifficultyChanged(StandardLevelDetailViewController _, IDifficultyBeatmap beatmap)
+        private void OnDifficultyChanged(StandardLevelDetailViewController controller)
         {
-            UpdateUI(beatmap);
+            UpdateUI(controller.beatmapKey, controller.beatmapLevel);
         }
 
-        private void OnContentChanged(StandardLevelDetailViewController _, StandardLevelDetailViewController.ContentType contentType)
+        private void OnContentChanged(StandardLevelDetailViewController controller, StandardLevelDetailViewController.ContentType contentType)
         {
             if (contentType == StandardLevelDetailViewController.ContentType.OwnedAndReady)
             {
-                UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
+                UpdateUI(controller.beatmapKey, controller.beatmapLevel);
             }
         }
 
         private void OnPlayResultDismiss(ResultsViewController _)
         {
-            UpdateUI(_levelDetailViewController.selectedDifficultyBeatmap);
+            UpdateUI(_levelDetailViewController.beatmapKey, _levelDetailViewController.beatmapLevel);
         }
 
-        private void UpdateUI(IDifficultyBeatmap? beatmap)
+        private void UpdateUI(BeatmapKey beatmapKey, BeatmapLevel? beatmap)
         {
             if (beatmap == null) return;
             _logger.Info("Updating SPH UI");
-            _logger.Debug($"{beatmap.level.songName} {beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName} {beatmap.difficulty}");
+            _logger.Debug($"{beatmap.songName} {beatmapKey.beatmapCharacteristic.serializedName} {beatmapKey.difficulty}");
             
-            SetStats(beatmap);
+            SetStats(beatmapKey);
 
             _cts?.Cancel();
             _cts?.Dispose();
@@ -170,11 +170,11 @@ namespace SongPlayHistory.UI
             {
                 try
                 {
-                    await SetRecords(beatmap, token);
+                    await SetRecords(beatmapKey, beatmap, token);
                 }
                 catch (OperationCanceledException e) when (e.CancellationToken == token)
                 {
-                    _logger.Debug($"Update cancelled: {beatmap.level.songName}");
+                    _logger.Debug($"Update cancelled: {beatmap.songName}");
                 }
                 catch (Exception ex)
                 {
@@ -184,14 +184,14 @@ namespace SongPlayHistory.UI
             }, token);
         }
         
-        private async Task SetRecords(IDifficultyBeatmap beatmap, CancellationToken cancellationToken)
+        private async Task SetRecords(BeatmapKey beatmapKey, BeatmapLevel beatmap, CancellationToken cancellationToken)
         {
             _logger.Debug($"Setting records from Thread {Environment.CurrentManagedThreadId}");
             
-            var task = _scoringCacheManager.GetScoringInfo(beatmap, cancellationToken);  // let it run in the background first
+            var task = _scoringCacheManager.GetScoringInfo(beatmapKey, beatmap, cancellationToken);  // let it run in the background first
            
             var config = PluginConfig.Instance;
-            var key = new LevelMapKey(beatmap);
+            var key = new LevelMapKey(beatmapKey);
             var records =
                 from record in _recordsManager.GetRecords(key)
                 where config.ShowFailed || record.LevelEnd == LevelEndType.Cleared
@@ -295,10 +295,12 @@ namespace SongPlayHistory.UI
             _hoverHint.text = builder.ToString();
         }
 
-        private void SetStats(IDifficultyBeatmap beatmap)
+        private void SetStats(BeatmapKey beatmap)
         {
-            var stats = _playerDataModel.playerData.GetPlayerLevelStatsData(beatmap.level.levelID, beatmap.difficulty, beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic);
-            _playCount.text = stats.playCount.ToString();
+            var playCount = _playerDataModel.playerData.levelsStatsData.TryGetValue(beatmap, out var data)
+                ? data.playCount
+                : 0;
+            _playCount.text = playCount.ToString();
         }
     }
 }

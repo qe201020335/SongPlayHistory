@@ -125,7 +125,7 @@ namespace SongPlayHistory.SongPlayData
             
             if (eventArgs.LevelType == LevelType.Multiplayer)
             {
-                var beatmap = ((MultiplayerLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
+                var beatmap = ((MultiplayerLevelScenesTransitionSetupDataSO)scene).beatmapKey;
                 SaveRecord(beatmap, result, true, energyDidReach0, failRecord);
             }
             else
@@ -136,12 +136,12 @@ namespace SongPlayHistory.SongPlayData
                     _logger.Info("It was in practice or party mode, ignored.");
                     return;
                 }
-                var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
+                var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene).beatmapKey;
                 SaveRecord(beatmap, result, false, energyDidReach0, failRecord);
             }
         }
 
-        public IList<ISongPlayRecord> GetRecords(IDifficultyBeatmap beatmap)
+        public IList<ISongPlayRecord> GetRecords(BeatmapKey beatmap)
         {
             var key = new LevelMapKey(beatmap);
             return GetRecords(key);
@@ -160,7 +160,7 @@ namespace SongPlayHistory.SongPlayData
             return new List<ISongPlayRecord>();
         }
 
-        private void SaveRecord(IDifficultyBeatmap? beatmap, LevelCompletionResults? result, bool isMultiplayer, bool energyDidReach0, ScoreRecord? failRecord)
+        private void SaveRecord(BeatmapKey? beatmap, LevelCompletionResults? result, bool isMultiplayer, bool energyDidReach0, ScoreRecord? failRecord)
         {
             if (beatmap == null || result == null)
             {
@@ -235,7 +235,7 @@ namespace SongPlayHistory.SongPlayData
 
             _logger.Info($"Saving result. Record: {record}");
 
-            var key = new LevelMapKey(beatmap).ToOldKey();
+            var key = new LevelMapKey(beatmap.Value).ToOldKey();
 
             if (!Records.ContainsKey(key))
             {

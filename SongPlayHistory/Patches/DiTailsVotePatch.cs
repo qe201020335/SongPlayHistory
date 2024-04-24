@@ -25,12 +25,12 @@ namespace SongPlayHistory.Patches
         }
 
         [HarmonyPrefix]
-        public static void Prefix(bool upvote, IDifficultyBeatmap? ____activeBeatmap)
+        public static void Prefix(bool upvote, BeatmapLevel? ____activeBeatmap)  //TODO: update when DiTails Update
         {
             if (____activeBeatmap == null) return;
             var vote = upvote ? VoteType.Upvote : VoteType.Downvote;
-            Plugin.Log.Debug($"DiTails voted {vote} to {____activeBeatmap.level.levelID}");
-            InMenuVoteTrackingHelper.Instance?.Vote(____activeBeatmap.level, vote);
+            Plugin.Log.Debug($"DiTails voted {vote} to {____activeBeatmap.levelID}");
+            InMenuVoteTrackingHelper.Instance?.Vote(____activeBeatmap, vote);
         }
     }
 }
