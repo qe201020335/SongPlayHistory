@@ -110,7 +110,7 @@ namespace SongPlayHistory.SongPlayData
         {
             if (_isReplay)
             {
-                Log.Info("It was a replay, ignored.");
+                _logger.Info("It was a replay, ignored.");
                 return;
             }
             
@@ -133,7 +133,7 @@ namespace SongPlayHistory.SongPlayData
                 // solo
                 if (_isPractice || Gamemode.IsPartyActive)
                 {
-                    Log.Info("It was in practice or party mode, ignored.");
+                    _logger.Info("It was in practice or party mode, ignored.");
                     return;
                 }
                 var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene).difficultyBeatmap;
