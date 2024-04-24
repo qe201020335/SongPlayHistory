@@ -12,20 +12,25 @@ namespace SongPlayHistory.VoteTracker
 
         [Inject]
         private readonly SiraLog _logger = null!;
-        
-        public void Vote(IPreviewBeatmapLevel level, VoteType voteType)
+
+        public void Vote(BeatmapLevel level, VoteType voteType)
         {
-            if (!(level is CustomPreviewBeatmapLevel customLevel)) return;
             try
             {
                 _logger.Debug($"Voting for {level.songName}, {level.levelID}, {voteType}");
+                var hash = Utils.Utils.GetLowerCaseCustomLevelHash(level);
+                if (hash == null)
+                {
+                    _logger.Debug("Not custom level");
+                    return;
+                }
+
                 if (BSVPlugin.votedSongs == null)
                 {
                     _logger.Debug("BeatSaverVoting dictionary is null");
                     return;
                 }
 
-                var hash = Utils.Utils.GetLowerCaseCustomLevelHash(customLevel);
                 var bsvType = voteType == VoteType.Upvote ? BSVType.Upvote : BSVType.Downvote;
                 if (BSVPlugin.votedSongs.TryGetValue(hash, out var songVote) && songVote.voteType == bsvType) return;
                 
@@ -39,14 +44,18 @@ namespace SongPlayHistory.VoteTracker
             }
         }
 
-        public bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
+        public bool TryGetVote(BeatmapLevel level, out VoteType voteType)
         {
             voteType = VoteType.Downvote;
-            if (!(level is CustomPreviewBeatmapLevel customLevel)) return false;
             try
             {
                 _logger.Debug($"Getting vote data for {level.songName}, {level.levelID}");
-                var hash = Utils.Utils.GetLowerCaseCustomLevelHash(customLevel);
+                var hash = Utils.Utils.GetLowerCaseCustomLevelHash(level);
+                if (hash == null)
+                {
+                    _logger.Debug("Not custom level");
+                    return false;
+                }
                 
                 var voteStatus = BSVPlugin.CurrentVoteStatus(hash);
                 if (voteStatus == null)

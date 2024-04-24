@@ -19,8 +19,8 @@ namespace SongPlayHistory.Model
             Difficulty = difficulty;
         }
 
-        public LevelMapKey(IDifficultyBeatmap beatmap)
-            : this(beatmap.level.levelID, beatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName, beatmap.difficulty)
+        public LevelMapKey(BeatmapKey beatmap)
+            : this(beatmap.levelId, beatmap.beatmapCharacteristic.serializedName, beatmap.difficulty)
         {
         }
 

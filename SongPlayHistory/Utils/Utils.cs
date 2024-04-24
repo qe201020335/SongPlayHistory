@@ -32,9 +32,9 @@ namespace SongPlayHistory.Utils
         }
         #endregion
 
-        internal static string GetLowerCaseCustomLevelHash(CustomPreviewBeatmapLevel level)
+        internal static string? GetLowerCaseCustomLevelHash(BeatmapLevel level)
         {
-            return Hashing.GetCustomLevelHash(level).ToLower();
+            return level.levelID.StartsWith("custom_level_") ? Hashing.GetCustomLevelHash(level).ToLower() : null;
         }
         
         internal static IList<ISongPlayRecord> Copy(this IEnumerable<Record> records)
