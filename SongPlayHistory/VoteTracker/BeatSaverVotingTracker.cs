@@ -16,9 +16,6 @@ namespace SongPlayHistory.VoteTracker
         [Inject]
         private readonly SiraLog _logger = null!;
 
-        private readonly MethodBase? SongCoreGetCustomSongHash = 
-            AccessTools.Method("SongCore.Utilities.Hashing:GetCustomLevelHash", new[] { typeof(CustomPreviewBeatmapLevel) });
-
         private Dictionary<string, BeatSaverVoting.Plugin.SongVote>? _votes
         {
             get
@@ -34,33 +31,12 @@ namespace SongPlayHistory.VoteTracker
             }
         }
 
-        private string GetHash(CustomPreviewBeatmapLevel customLevel)
-        {
-            string hash;
-            if (SongCoreGetCustomSongHash != null)
-            {
-                hash = (string) SongCoreGetCustomSongHash.Invoke(null, new object[] { customLevel });
-            }
-            else
-            {
-                // BeatSaverVoting depends on SongCore so the reflection shouldn't fail.
-                
-                // This has some problem when there are duplicated levels
-                // the level id would be custom_level_HASHHASHHASH_SONGFOLDERNAME
-                hash = customLevel.levelID.Replace("custom_level_", "");
-            }
-
-            return hash.ToLower();
-        }
-
-
-
         public void Vote(IPreviewBeatmapLevel level, VoteType voteType)
         {
             if (!(level is CustomPreviewBeatmapLevel customLevel)) return;
             try
             {
-                var hash = GetHash(customLevel);
+                var hash = Utils.Utils.GetCustomLevelHash(customLevel);
                 var bsvType = voteType == VoteType.Upvote ? BSVType.Upvote : BSVType.Downvote;
                 if (_votes == null)
                 {
@@ -85,7 +61,7 @@ namespace SongPlayHistory.VoteTracker
             if (!(level is CustomPreviewBeatmapLevel customLevel)) return false;
             try
             {
-                var hash = GetHash(customLevel);
+                var hash = Utils.Utils.GetCustomLevelHash(customLevel);
                 var voteStatus = BeatSaverVoting.Plugin.CurrentVoteStatus(hash);
                 if (voteStatus == null)
                 {

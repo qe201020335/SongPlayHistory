@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using HarmonyLib;
+using SongCore.Utilities;
 using SongPlayHistory.Model;
 using SongPlayHistory.SongPlayData;
 
@@ -31,28 +32,9 @@ namespace SongPlayHistory.Utils
         }
         #endregion
 
-        internal static bool TryGetHashFromLevelId(string levelId, out string hash)
+        internal static string GetCustomLevelHash(CustomPreviewBeatmapLevel level)
         {
-            if (levelId.StartsWith("custom_level_") && !levelId.Contains("WIP"))
-            {
-                // When there are duplicated levels
-                // the level id would be custom_level_HASHHASHHASH_SONGFOLDERNAME
-                var id = levelId.Replace("custom_level_", "");
-                var index = id.IndexOf("_");
-                if (index >= 0 && id.Length >= index)
-                {
-                    id = id.Substring(0, index);
-                }
-
-                if (!string.IsNullOrWhiteSpace(id))
-                {
-                    hash = id;
-                    return true;
-                }
-            }
-            
-            hash = "";
-            return false;
+            return Hashing.GetCustomLevelHash(level).ToLower();
         }
         
         internal static IList<ISongPlayRecord> Copy(this IEnumerable<Record> records)
