@@ -100,14 +100,13 @@ namespace SongPlayHistory.VoteTracker
             }
         }
 
-        public bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
+        public bool TryGetVote(BeatmapLevel level, out VoteType voteType)
         {
             voteType = VoteType.Downvote;
             try
             {
-                if (!(level is CustomPreviewBeatmapLevel customLevel)) return false;
-                var hash = Utils.Utils.GetCustomLevelHash(customLevel);
-                if (Votes?.TryGetValue(hash.ToLower(), out var vote) == true)
+                var hash = Utils.Utils.GetCustomLevelHash(level);
+                if (hash != null && Votes?.TryGetValue(hash.ToLower(), out var vote) == true)
                 {
                     voteType = vote.VoteType;
                     return true;
@@ -122,16 +121,14 @@ namespace SongPlayHistory.VoteTracker
             return false;
         }
 
-        public void Vote(IPreviewBeatmapLevel level, VoteType voteType)
+        public void Vote(BeatmapLevel level, VoteType voteType)
         {
             Task.Run(() =>
             {
-                if (!(level is CustomPreviewBeatmapLevel customLevel)) return;
-                
                 lock (_voteWriteLock)
                 {
-                    var hash = Utils.Utils.GetCustomLevelHash(customLevel);
-                    if (Votes != null)
+                    var hash = Utils.Utils.GetCustomLevelHash(level);
+                    if (hash != null && Votes != null)
                     {
                         hash = hash.ToLower();
                         if (!Votes.ContainsKey(hash) || Votes[hash].VoteType != voteType)

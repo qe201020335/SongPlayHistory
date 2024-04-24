@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -32,9 +33,9 @@ namespace SongPlayHistory.Utils
         }
         #endregion
 
-        internal static string GetCustomLevelHash(CustomPreviewBeatmapLevel level)
+        internal static string? GetCustomLevelHash(BeatmapLevel level)
         {
-            return Hashing.GetCustomLevelHash(level).ToLower();
+            return level.levelID.StartsWith("custom_level_") ? Hashing.GetCustomLevelHash(level) : null;
         }
         
         internal static IList<ISongPlayRecord> Copy(this IEnumerable<Record> records)

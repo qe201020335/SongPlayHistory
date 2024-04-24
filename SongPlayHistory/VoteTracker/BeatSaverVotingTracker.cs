@@ -31,12 +31,16 @@ namespace SongPlayHistory.VoteTracker
             }
         }
 
-        public void Vote(IPreviewBeatmapLevel level, VoteType voteType)
+        public void Vote(BeatmapLevel level, VoteType voteType)
         {
-            if (!(level is CustomPreviewBeatmapLevel customLevel)) return;
             try
             {
-                var hash = Utils.Utils.GetCustomLevelHash(customLevel);
+                var hash = Utils.Utils.GetCustomLevelHash(level);
+                if (hash == null)
+                {
+                    return;
+                }
+
                 var bsvType = voteType == VoteType.Upvote ? BSVType.Upvote : BSVType.Downvote;
                 if (_votes == null)
                 {
@@ -55,13 +59,17 @@ namespace SongPlayHistory.VoteTracker
             }
         }
 
-        public bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType)
+        public bool TryGetVote(BeatmapLevel level, out VoteType voteType)
         {
             voteType = VoteType.Downvote;
-            if (!(level is CustomPreviewBeatmapLevel customLevel)) return false;
             try
             {
-                var hash = Utils.Utils.GetCustomLevelHash(customLevel);
+                var hash = Utils.Utils.GetCustomLevelHash(level);
+                if (hash == null)
+                {
+                    return false;
+                }
+                
                 var voteStatus = BeatSaverVoting.Plugin.CurrentVoteStatus(hash);
                 if (voteStatus == null)
                 {

@@ -4,9 +4,9 @@ namespace SongPlayHistory.VoteTracker
 {
     public interface IVoteTracker
     {
-        public bool TryGetVote(IPreviewBeatmapLevel level, out VoteType voteType);
+        public bool TryGetVote(BeatmapLevel level, out VoteType voteType);
 
-        public void Vote(IPreviewBeatmapLevel level, VoteType voteType);
+        public void Vote(BeatmapLevel level, VoteType voteType);
 
     }
 }
