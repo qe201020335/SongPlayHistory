@@ -20,6 +20,7 @@ Track all your scores and song votes. This is the actively maintained fork of th
 - BeatSaberMarkupLanguage
 - BS Utils
 - SiraUtil
+- SongCore
 
 Available in [ModAssistant](https://github.com/Assistant/ModAssistant) or on [BeatMods](https://beatmods.com/#/mods)
 
