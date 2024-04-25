@@ -32,7 +32,7 @@ namespace SongPlayHistory.Utils
         }
         #endregion
 
-        internal static string GetCustomLevelHash(CustomPreviewBeatmapLevel level)
+        internal static string GetLowerCaseCustomLevelHash(CustomPreviewBeatmapLevel level)
         {
             return Hashing.GetCustomLevelHash(level).ToLower();
         }

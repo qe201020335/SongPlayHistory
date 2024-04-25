@@ -106,8 +106,8 @@ namespace SongPlayHistory.VoteTracker
             try
             {
                 if (!(level is CustomPreviewBeatmapLevel customLevel)) return false;
-                var hash = Utils.Utils.GetCustomLevelHash(customLevel);
-                if (Votes?.TryGetValue(hash.ToLower(), out var vote) == true)
+                var hash = Utils.Utils.GetLowerCaseCustomLevelHash(customLevel);
+                if (Votes?.TryGetValue(hash, out var vote) == true)
                 {
                     voteType = vote.VoteType;
                     return true;
@@ -130,10 +130,9 @@ namespace SongPlayHistory.VoteTracker
                 
                 lock (_voteWriteLock)
                 {
-                    var hash = Utils.Utils.GetCustomLevelHash(customLevel);
+                    var hash = Utils.Utils.GetLowerCaseCustomLevelHash(customLevel);
                     if (Votes != null)
                     {
-                        hash = hash.ToLower();
                         if (!Votes.ContainsKey(hash) || Votes[hash].VoteType != voteType)
                         {
                             Votes[hash] = new UserVote

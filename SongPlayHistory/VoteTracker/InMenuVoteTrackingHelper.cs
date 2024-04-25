@@ -1,6 +1,7 @@
 ﻿using System;
 using HMUI;
 using IPA.Utilities;
+using SiraUtil.Logging;
 using SongPlayHistory.Model;
 using Zenject;
 
@@ -15,6 +16,9 @@ namespace SongPlayHistory.VoteTracker
         
         [Inject]
         private readonly ResultsViewController _resultsViewController = null!;
+        
+        [Inject]
+        private readonly SiraLog _logger = null!;
         
         private readonly TableView _tableView;
 
@@ -46,6 +50,7 @@ namespace SongPlayHistory.VoteTracker
         internal void Vote(IPreviewBeatmapLevel level, VoteType voteType)
         {
             _voteTracker.Vote(level, voteType);
+            _logger.Debug("Refreshing cells content");
             _tableView.RefreshCellsContent();
         }
         
