@@ -23,11 +23,11 @@ internal class ScoringCacheManager: IScoringCacheManager
     public async Task<LevelScoringCache> GetScoringInfo(IDifficultyBeatmap beatmap, CancellationToken cancellationToken = new())
     {
         _logger.Debug($"Get scoring cache from Thread {Environment.CurrentManagedThreadId}");
-        var key = new LevelMapKey(beatmap);
+        var cacheKey = new LevelMapKey(beatmap);
         
         lock (_cache)
         {
-            if (_cache.TryGetValue(key, out var cache))
+            if (_cache.TryGetValue(cacheKey, out var cache))
             {
                 return cache;
             }
@@ -54,7 +54,7 @@ internal class ScoringCacheManager: IScoringCacheManager
         lock (_cache)
         {
             // write cache
-            _cache[key] = newCache;
+            _cache[cacheKey] = newCache;
         }
         cancellationToken.ThrowIfCancellationRequested();
 
