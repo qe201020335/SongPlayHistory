@@ -35,7 +35,7 @@ namespace SongPlayHistory.Patches
                 Plugin.Log.Warn("InMenuVoteTrackingHelper is null");
                 return;
             }
-            
+
             InMenuVoteTrackingHelper.Instance.Vote(____activeBeatmap, vote);
         }
     }

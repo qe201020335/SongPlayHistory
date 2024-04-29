@@ -74,11 +74,11 @@ internal class ScoringCacheManager: IScoringCacheManager
                 beatmapLevelData, 
                 beatmapKey, 
                 beatmapLevel.beatsPerMinute, 
-                false, //environmentName == this.environmentInfo.serializedName, 
-                envInfo, // do we need to consider player env override?
-                _playerDataModel.playerData.gameplayModifiers,
-                _playerDataModel.playerData.playerSpecificSettings,
-                true);
+                false,
+                null,
+                null,
+                null,
+                false);
 
         cancellationToken.ThrowIfCancellationRequested();
         
