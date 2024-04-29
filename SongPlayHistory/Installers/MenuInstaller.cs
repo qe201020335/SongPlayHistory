@@ -1,4 +1,5 @@
-﻿using SongPlayHistory.UI;
+﻿using SiraUtil.Logging;
+using SongPlayHistory.UI;
 using SongPlayHistory.VoteTracker;
 using Zenject;
 
@@ -12,6 +13,7 @@ namespace SongPlayHistory.Installers
         
         public override void InstallBindings()
         {
+            _logger.Debug("Binding SPHUI");
             Container.BindInterfacesTo<SPHUI>().AsSingle();
             _logger.Debug("Binding InMenuVoteTrackingHelper");
             Container.BindInterfacesAndSelfTo<InMenuVoteTrackingHelper>().AsSingle().NonLazy();

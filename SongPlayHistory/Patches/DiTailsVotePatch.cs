@@ -30,7 +30,14 @@ namespace SongPlayHistory.Patches
             if (____activeBeatmap == null) return;
             var vote = upvote ? VoteType.Upvote : VoteType.Downvote;
             Plugin.Log.Debug($"DiTails voted {vote} to {____activeBeatmap.level.levelID}");
-            InMenuVoteTrackingHelper.Instance?.Vote(____activeBeatmap.level, vote);
+            if (InMenuVoteTrackingHelper.Instance == null)
+            {
+                Plugin.Log.Warn("InMenuVoteTrackingHelper is null");
+                return;
+            }
+
+            InMenuVoteTrackingHelper.Instance.Vote(____activeBeatmap.level, vote);
+            
         }
     }
 }
