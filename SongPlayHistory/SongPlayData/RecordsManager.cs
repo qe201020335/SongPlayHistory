@@ -27,11 +27,7 @@ namespace SongPlayHistory.SongPlayData
         public void Initialize()
         {
             // We don't anymore support migrating old records from a config file.
-            if (!File.Exists(DataFile))
-            {
-                return;
-            }
-            
+
             if (!LoadRecords(DataFile, out var records) || records.Count == 0)
             {
                 _logger.Warn("Did not load any records from file. Will try to restore from a backup.");
@@ -68,7 +64,15 @@ namespace SongPlayHistory.SongPlayData
 
         private bool LoadRecords(string path, out Dictionary<string, IList<Record>> records)
         {
-            _logger.Debug($"Loading history from {path}");
+            _logger.Info($"Loading history from {path}");
+            records = new Dictionary<string, IList<Record>>();
+            
+            if (!File.Exists(path))
+            {
+                _logger.Warn($"History file doesn't exist: {path}");
+                return false;
+            }
+            
             try
             {
                 // Read records from a data file.
@@ -81,7 +85,6 @@ namespace SongPlayHistory.SongPlayData
             {
                 _logger.Error("Unable to deserialize song play records.");
                 _logger.Error(e);
-                records = new Dictionary<string, IList<Record>>();
                 return false;
             }
         }
