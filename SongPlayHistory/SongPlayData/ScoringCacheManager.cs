@@ -82,10 +82,16 @@ internal class ScoringCacheManager: IScoringCacheManager
 
         cancellationToken.ThrowIfCancellationRequested();
         
-        var notesCount = basicBeatmapData.notesCount;
+        if (beatmapData == null)
+        {
+            _logger.Error("Failed to get BeatmapData.");
+            throw new Exception("Failed to get BeatmapData.");
+        }
+
+        var notesCount = beatmapData.cuttableNotesCount;
         var fullMaxScore = ScoreModel.ComputeMaxMultipliedScoreForBeatmap(beatmapData);
         // we can use the original v2 scoring method to calculate the adjusted max score if there is no slider or burst
-        var isV2Score = !beatmapData!.GetBeatmapDataItems<SliderData>(0).Any();
+        var isV2Score = !beatmapData.GetBeatmapDataItems<SliderData>(0).Any();
         cancellationToken.ThrowIfCancellationRequested();
 
         var newCache = new LevelScoringCache
