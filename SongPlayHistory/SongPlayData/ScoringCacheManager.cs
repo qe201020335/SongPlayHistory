@@ -18,6 +18,9 @@ internal class ScoringCacheManager: IScoringCacheManager
     private readonly BeatmapLevelsModel _beatmapLevelsModel = null!;
     
     [Inject]
+    private readonly BeatmapLevelsEntitlementModel _beatmapLevelsEntitlementModel;
+    
+    [Inject]
     private readonly BeatmapDataLoader _beatmapDataLoader = null!;
     
     [Inject]
@@ -57,8 +60,8 @@ internal class ScoringCacheManager: IScoringCacheManager
         }
         
         _logger.Debug("Loading beat map level data from BeatmapLevelsModel.");
-        var loadResult = await _beatmapLevelsModel.LoadBeatmapLevelDataAsync(beatmapKey.levelId, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
+        var dataVersion = await _beatmapLevelsEntitlementModel.GetLevelDataVersionAsync(beatmapKey.levelId, cancellationToken);
+        var loadResult = await _beatmapLevelsModel.LoadBeatmapLevelDataAsync(beatmapKey.levelId, dataVersion, cancellationToken);
         if (loadResult.isError)
         {
             _logger.Error("Failed to get BeatmapLevelData.");
@@ -76,6 +79,7 @@ internal class ScoringCacheManager: IScoringCacheManager
                 beatmapLevel.beatsPerMinute, 
                 false,
                 null,
+                dataVersion,
                 null,
                 null,
                 false);
