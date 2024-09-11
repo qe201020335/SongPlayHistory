@@ -33,7 +33,7 @@ namespace SongPlayHistory.UI
         [Inject]
         private readonly IScoringCacheManager _scoringCacheManager = null!;
         
-        private readonly SiraLog _logger = null!;
+        private readonly SiraLog _logger;
         
         private readonly StandardLevelDetailViewController _levelDetailViewController;
         
@@ -49,9 +49,9 @@ namespace SongPlayHistory.UI
             _levelDetailViewController = levelDetailViewController;
             _logger = logger;
             
-            var levelStatsView = leaderboardViewController.GetField<LevelStatsView, PlatformLeaderboardViewController>("_levelStatsView");
-            var levelDetailView = levelDetailViewController.GetField<StandardLevelDetailView, StandardLevelDetailViewController>("_standardLevelDetailView");
-            var levelParamsPanel = levelDetailView.GetField<LevelParamsPanel, StandardLevelDetailView>("_levelParamsPanel");
+            var levelStatsView = leaderboardViewController._levelStatsView;
+            var levelDetailView = levelDetailViewController._standardLevelDetailView;
+            var levelParamsPanel = levelDetailView._levelParamsPanel;
 
             try
             {

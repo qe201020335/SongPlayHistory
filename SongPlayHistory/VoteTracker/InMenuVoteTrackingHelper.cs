@@ -1,6 +1,5 @@
 ﻿using System;
 using HMUI;
-using IPA.Utilities;
 using SiraUtil.Logging;
 using SongPlayHistory.Model;
 using Zenject;
@@ -24,8 +23,8 @@ namespace SongPlayHistory.VoteTracker
 
         public InMenuVoteTrackingHelper(LevelCollectionViewController levelCollectionViewController)
         {
-            var levelCollectionTableView = levelCollectionViewController.GetField<LevelCollectionTableView, LevelCollectionViewController>("_levelCollectionTableView");
-            _tableView = levelCollectionTableView.GetField<TableView, LevelCollectionTableView>("_tableView");
+            var levelCollectionTableView = levelCollectionViewController._levelCollectionTableView;
+            _tableView = levelCollectionTableView._tableView;
         }
 
         public void Initialize()
