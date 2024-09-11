@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using BeatSaberMarkupLanguage.Settings;
+using BeatSaberMarkupLanguage.Util;
 using HarmonyLib;
 using IPA;
 using IPA.Config.Stores;
@@ -37,7 +38,6 @@ namespace SongPlayHistory
             _harmony = new Harmony(HarmonyId);
 
             PluginConfig.Instance = config.Generated<PluginConfig>();
-            BSMLSettings.instance.AddSettingsMenu("Song Play History", "SongPlayHistory.UI.Settings.bsml", new SettingsController());
             
             zenjector.UseLogger();
             zenjector.Install<ScoreTrackerInstaller>(Location.MultiPlayer | Location.StandardPlayer);

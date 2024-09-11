@@ -13,6 +13,10 @@ namespace SongPlayHistory.Installers
         
         public override void InstallBindings()
         {
+            _logger.Debug("Binding settings menu and manager");
+            Container.BindInterfacesTo<MenuSettingsManager>().AsSingle().NonLazy();
+            Container.BindInterfacesAndSelfTo<SettingsController>().AsSingle();
+            
             _logger.Debug("Binding SPHUI");
             Container.BindInterfacesTo<SPHUI>().AsSingle();
             _logger.Debug("Binding InMenuVoteTrackingHelper");
