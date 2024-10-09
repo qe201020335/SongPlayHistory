@@ -79,6 +79,7 @@ internal class ScoringCacheManager: IScoringCacheManager
                 beatmapLevel.beatsPerMinute, 
                 false,
                 null,
+                null,
                 dataVersion,
                 null,
                 null,

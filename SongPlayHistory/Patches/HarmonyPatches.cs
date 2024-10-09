@@ -30,11 +30,11 @@ namespace SongPlayHistory
         }
 
         [HarmonyAfter("com.kyle1413.BeatSaber.SongCore")]
-        public static void Postfix(LevelListTableCell __instance, BeatmapLevel? level, bool isFavorite, 
+        public static void Postfix(LevelListTableCell __instance, BeatmapLevel? beatmapLevel, bool isFavorite, 
             Image ____favoritesBadgeImage, TextMeshProUGUI? ____songBpmText)
         {
             if (!PluginConfig.Instance.ShowVotes) return;
-            if (level == null) return;
+            if (beatmapLevel == null) return;
             if (____songBpmText != null)
             {
                 if (float.TryParse(____songBpmText.text, out float bpm))
@@ -60,7 +60,7 @@ namespace SongPlayHistory
                 voteIcon.rectTransform.sizeDelta = new Vector2(2.5f, 2.5f);
             }
 
-            if (!isFavorite && InMenuVoteTrackingHelper.Instance?.TryGetVote(level, out var vote) == true)
+            if (!isFavorite && InMenuVoteTrackingHelper.Instance?.TryGetVote(beatmapLevel, out var vote) == true)
             {
                 if (vote == VoteType.Upvote)
                 {
