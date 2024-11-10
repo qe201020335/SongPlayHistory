@@ -202,8 +202,8 @@ namespace SongPlayHistory.SongPlayData
                 record = new Record
                 {
                     Date = time,
-                    ModifiedScore = failRecord.Value.RawScore,
-                    RawScore = failRecord.Value.ModifiedScore,
+                    ModifiedScore = failRecord.Value.ModifiedScore,
+                    RawScore = failRecord.Value.RawScore,
                     LastNote = failRecord.Value.NotesPassed,
                     Params = param,
                     MaxRawScore = failRecord.Value.MaxRawScore
@@ -216,8 +216,8 @@ namespace SongPlayHistory.SongPlayData
                 record = new Record
                 {
                     Date = time,
-                    ModifiedScore = failRecord.Value.RawScore,
-                    RawScore = failRecord.Value.ModifiedScore,
+                    ModifiedScore = failRecord.Value.ModifiedScore,
+                    RawScore = failRecord.Value.RawScore,
                     LastNote = failRecord.Value.NotesPassed,
                     Params = param,
                     MaxRawScore = failRecord.Value.MaxRawScore
