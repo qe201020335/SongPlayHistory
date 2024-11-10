@@ -23,7 +23,9 @@ namespace SongPlayHistory.Installers
             _logger.Debug("Binding InMenuVoteTrackingHelper");
             Container.BindInterfacesAndSelfTo<InMenuVoteTrackingHelper>().AsSingle().NonLazy();
 
+            // Score Percentage features
             Container.BindInterfacesTo<LevelStatsViewPatch>().AsSingle();
+            Container.BindInterfacesTo<ResultsViewControllerPatch>().AsSingle();
         }
     }
 }

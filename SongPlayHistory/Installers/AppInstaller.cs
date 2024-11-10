@@ -1,4 +1,4 @@
-﻿using IPA.Loader;
+using IPA.Loader;
 using SongPlayHistory.SongPlayData;
 using SongPlayHistory.SongPlayTracking;
 using SongPlayHistory.VoteTracker;
