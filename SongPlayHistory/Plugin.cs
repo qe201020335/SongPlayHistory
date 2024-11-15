@@ -40,7 +40,7 @@ namespace SongPlayHistory
             PluginConfig.Instance = config.Generated<PluginConfig>();
             
             zenjector.UseLogger();
-            zenjector.Install<ScoreTrackerInstaller>(Location.MultiPlayer | Location.StandardPlayer);
+            zenjector.Install<SongPlayTrackingInstaller>(Location.MultiPlayer | Location.StandardPlayer);
             zenjector.Install<MenuInstaller>(Location.Menu);
             zenjector.Install<AppInstaller>(Location.App);
         }

@@ -2,14 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using BS_Utils.Gameplay;
-using BS_Utils.Utilities;
 using IPA.Utilities;
-using ModestTree;
 using Newtonsoft.Json;
 using SiraUtil.Logging;
-using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
+using SongPlayHistory.SongPlayTracking;
 using SongPlayHistory.Utils;
 using Zenject;
 
@@ -55,11 +52,9 @@ namespace SongPlayHistory.SongPlayData
             _logger.Info($"Loaded {SumRecords(Records)} records from {Records.Count} levels.");
             
             // TODO remove bad records?
-
-            BSEvents.gameSceneLoaded -= OnGameSceneLoaded;
-            BSEvents.gameSceneLoaded += OnGameSceneLoaded;
-            BSEvents.LevelFinished -= OnLevelFinished;
-            BSEvents.LevelFinished += OnLevelFinished;
+            
+            SongPlayTracker.StandardMultiLevelDidFinish -= OnStandardMultiLevelFinished;
+            SongPlayTracker.StandardMultiLevelDidFinish += OnStandardMultiLevelFinished;
         }
 
         private bool LoadRecords(string path, out Dictionary<string, IList<Record>> records)
@@ -91,57 +86,38 @@ namespace SongPlayHistory.SongPlayData
 
         public void Dispose()
         {
-            BSEvents.gameSceneLoaded -= OnGameSceneLoaded;
-            BSEvents.LevelFinished -= OnLevelFinished;
+            SongPlayTracker.StandardMultiLevelDidFinish -= OnStandardMultiLevelFinished;
             SaveRecordsToFile();
             BackupRecords();
         }
-        
-        private bool _isPractice;
-        private bool _isReplay;
-        
-        private void OnGameSceneLoaded()
-        {
-            var practiceSettings = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData?.practiceSettings;
-            _isPractice = practiceSettings != null;
-            _isReplay = Utils.Utils.IsInReplay();
-            ScoreTracker.EnergyDidReach0 = false;
-            ScoreTracker.FailScoreRecord = null;
-        }
 
-        private void OnLevelFinished(object scene, LevelFinishedEventArgs eventArgs)
+        private void OnStandardMultiLevelFinished(LevelCompletionResults? results, LevelCompletionResultsExtraData? extraData)
         {
-            if (_isReplay)
+            if (results == null || extraData == null)
             {
-                _logger.Info("It was a replay, ignored.");
+                _logger.Warn("CompletionResults or extra data is null.");  // really shouldn't happen
                 return;
             }
             
-            if (eventArgs.LevelType != LevelType.Multiplayer && eventArgs.LevelType != LevelType.SoloParty)
+            if (extraData.IsPractice || extraData.IsParty)
+            {
+                _logger.Info("It was in practice or party mode, ignored.");
+                return;
+            }
+            
+            if (results.multipliedScore <= 0)
+            {
+                _logger.Warn("Record ignored, score is 0.");
+                return;
+            }
+
+            // Cancelled.
+            if (results.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete)
             {
                 return;
             }
 
-            var result = ((LevelFinishedWithResultsEventArgs)eventArgs).CompletionResults;
-            var energyDidReach0 = ScoreTracker.EnergyDidReach0;
-            var failRecord = ScoreTracker.FailScoreRecord;
-            
-            if (eventArgs.LevelType == LevelType.Multiplayer)
-            {
-                var beatmap = ((MultiplayerLevelScenesTransitionSetupDataSO)scene).beatmapKey;
-                SaveRecord(beatmap, result, true, energyDidReach0, failRecord);
-            }
-            else
-            {
-                // solo
-                if (_isPractice || Gamemode.IsPartyActive)
-                {
-                    _logger.Info("It was in practice or party mode, ignored.");
-                    return;
-                }
-                var beatmap = ((StandardLevelScenesTransitionSetupDataSO)scene).beatmapKey;
-                SaveRecord(beatmap, result, false, energyDidReach0, failRecord);
-            }
+            SaveRecord(results, extraData);            
         }
 
         public IList<ISongPlayRecord> GetRecords(BeatmapKey beatmap)
@@ -163,36 +139,26 @@ namespace SongPlayHistory.SongPlayData
             return new List<ISongPlayRecord>();
         }
 
-        private void SaveRecord(BeatmapKey? beatmap, LevelCompletionResults? result, bool isMultiplayer, bool energyDidReach0, ScoreRecord? failRecord)
+        private void SaveRecord(LevelCompletionResults result, LevelCompletionResultsExtraData extraData)
         {
-            if (beatmap == null || result == null)
+            var beatmapKey = extraData.SceneSetupData.beatmapKey;
+            if (!beatmapKey.IsValid())
             {
-                _logger.Warn("Beatmap or completionResults is null.");
+                _logger.Warn("Invalid BeatmapKey, not saving record.");
                 return;
             }
             
-            if (result.multipliedScore <= 0)
-            {
-                _logger.Warn("Record ignored, score is 0.");
-                return;
-            }
-
-            // Cancelled.
-            if (result.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete)
-            {
-                return;
-            }
-
             // We now keep failed records.
             var cleared = result.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared;
-            var submissionDisabled = ScoreSubmission.WasDisabled || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
             var noFailEnabled = result.gameplayModifiers.noFailOn0Energy;
+            var energyDidReach0 = extraData.EnergyDidReach0;
+            var failRecord = extraData.ScoringDataWhenEnergyReached0;
             
             _logger.Debug($"Cleared: {cleared}, NoFail: {noFailEnabled}, SoftFailed: {energyDidReach0}, FailRecord: {failRecord}");
             
             var param = ParamHelper.ModsToParam(result.gameplayModifiers, energyDidReach0);
-            param |= submissionDisabled ? SongPlayParam.SubmissionDisabled : 0;
-            param |= isMultiplayer ? SongPlayParam.Multiplayer : 0;
+            param |= extraData.ScoreSubmissionDisabled ? SongPlayParam.SubmissionDisabled : 0;
+            param |= extraData.IsMultiplayer ? SongPlayParam.Multiplayer : 0;
             var time = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             Record record;
             
@@ -238,7 +204,7 @@ namespace SongPlayHistory.SongPlayData
 
             _logger.Info($"Saving result. Record: {record}");
 
-            var key = new LevelMapKey(beatmap.Value).ToOldKey();
+            var key = new LevelMapKey(beatmapKey).ToOldKey();
 
             if (!Records.ContainsKey(key))
             {
