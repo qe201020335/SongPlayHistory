@@ -25,30 +25,33 @@ internal class SongPlayTracker : IInitializable, IDisposable
     [Inject]
     private readonly GameplayCoreSceneSetupData _sceneSetupData = null!;
 
+    // This type is actually binded in PCInit so it will never be null
     [InjectOptional]
     private readonly StandardLevelScenesTransitionSetupDataSO? _standardTransitionData = null;
 
+    // Use this instead of MultiplayerLevelScenesTransitionSetupDataSO to trigger result gathering
+    // as soon as the player fail and/or becomes inactive, instead of waiting for return to lobby.
     [InjectOptional]
     private readonly IMultiplayerLevelEndActionsPublisher? _multiplayerLevelEndActions = null;
 
     void IInitializable.Initialize()
     {
-        if (_standardTransitionData != null)
+        _logger.Trace("Initializing SongPlayTracker");
+        if (_standardTransitionData != null) // this will always be true
         {
             _standardTransitionData.didFinishEvent += OnStandardLevelDidFinish;
         }
-        else if (_multiplayerLevelEndActions != null)
+
+        if (_multiplayerLevelEndActions != null)
         {
+            _logger.Trace($"Type of multi end actions publisher from di is: {_multiplayerLevelEndActions.GetType()}");
             _multiplayerLevelEndActions.playerDidFinishEvent += OnMultiplayerLevelDidFinish;
-        }
-        else
-        {
-            _logger.Warn("Not standard or multiplayer active player! This should not happen!");
         }
     }
 
     void IDisposable.Dispose()
     {
+        _logger.Trace("Disposing SongPlayTracker");
         if (_standardTransitionData != null)
         {
             _standardTransitionData.didFinishEvent -= OnStandardLevelDidFinish;
@@ -62,13 +65,25 @@ internal class SongPlayTracker : IInitializable, IDisposable
 
     private void OnStandardLevelDidFinish(StandardLevelScenesTransitionSetupDataSO? data, LevelCompletionResults? results)
     {
-        if (data == null) return;
+        _logger.Trace("Standard level finished");
+        if (data == null)
+        {
+            _logger.Warn("StandardLevelScenesTransitionSetupDataSO is null.");
+            return;
+        }
+
         HandleLevelFinished(results, false, data.gameMode.Equals("Party", StringComparison.OrdinalIgnoreCase));
     }
 
     private void OnMultiplayerLevelDidFinish(MultiplayerLevelCompletionResults? results)
     {
-        if (results == null) return;
+        _logger.Trace("Multi level finished");
+        if (results == null)
+        {
+            _logger.Warn("MultiplayerLevelCompletionResults is null.");
+            return;
+        }
+
         HandleLevelFinished(results.levelCompletionResults, true, false);
     }
 
