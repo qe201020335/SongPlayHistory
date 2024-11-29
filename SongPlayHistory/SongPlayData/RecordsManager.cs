@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,7 +17,7 @@ namespace SongPlayHistory.SongPlayData
     {
         private readonly string DataFile = Path.Combine(UnityGame.UserDataPath, "SongPlayData.json");
 
-        private Dictionary<string, IList<Record>> Records { get; set; } = new();
+        private ConcurrentDictionary<string, IList<Record>> Records { get; set; } = new();
 
         [Inject]
         private readonly SiraLog _logger = null!;
@@ -40,7 +41,7 @@ namespace SongPlayHistory.SongPlayData
                 {
                     // There's nothing more we can try. Overwrite the file.
                     _logger.Warn("Backup not found.");
-                    Records = new Dictionary<string, IList<Record>>();
+                    Records = new ConcurrentDictionary<string, IList<Record>>();
                 }
             }
             else
@@ -57,10 +58,10 @@ namespace SongPlayHistory.SongPlayData
             SongPlayTracker.StandardMultiLevelDidFinish += OnStandardMultiLevelFinished;
         }
 
-        private bool LoadRecords(string path, out Dictionary<string, IList<Record>> records)
+        private bool LoadRecords(string path, out ConcurrentDictionary<string, IList<Record>> records)
         {
             _logger.Info($"Loading history from {path}");
-            records = new Dictionary<string, IList<Record>>();
+            records = new ConcurrentDictionary<string, IList<Record>>();
             
             if (!File.Exists(path))
             {
@@ -72,7 +73,7 @@ namespace SongPlayHistory.SongPlayData
             {
                 // Read records from a data file.
                 var text = File.ReadAllText(path);
-                var deserialized = JsonConvert.DeserializeObject<Dictionary<string, IList<Record>>>(text);
+                var deserialized = JsonConvert.DeserializeObject<ConcurrentDictionary<string, IList<Record>>>(text);
                 records = deserialized ?? throw new Exception();
                 return true;
             }
@@ -206,11 +207,7 @@ namespace SongPlayHistory.SongPlayData
 
             var key = new LevelMapKey(beatmapKey).ToOldKey();
 
-            if (!Records.ContainsKey(key))
-            {
-                Records.Add(key, new List<Record>());
-            }
-            Records[key].Add(record);
+            Records.GetOrAdd(key, new List<Record>()).Add(record);
 
             // Save to a file. We do this synchronously because the overhead is small. (400 ms / 15 MB, 60 ms / 1 MB)
             SaveRecordsToFile();
@@ -268,7 +265,7 @@ namespace SongPlayHistory.SongPlayData
             }
         }
 
-        private static int SumRecords(Dictionary<string, IList<Record>> records)
+        private static int SumRecords(IDictionary<string, IList<Record>> records)
         {
             return records.Select(pair => pair.Value.Count).Sum();
         }
