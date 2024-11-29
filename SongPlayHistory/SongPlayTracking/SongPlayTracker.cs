@@ -24,6 +24,9 @@ internal class SongPlayTracker : IInitializable, IDisposable
 
     [Inject]
     private readonly GameplayCoreSceneSetupData _sceneSetupData = null!;
+    
+    [Inject]
+    private readonly IPlayerDataModel _playerDataModel = null!;
 
     // This type is actually binded in PCInit so it will never be null
     [InjectOptional]
@@ -33,6 +36,8 @@ internal class SongPlayTracker : IInitializable, IDisposable
     // as soon as the player fail and/or becomes inactive, instead of waiting for return to lobby.
     [InjectOptional]
     private readonly IMultiplayerLevelEndActionsPublisher? _multiplayerLevelEndActions = null;
+    
+    private PlayerLevelStatsData? _previousLevelStatsData = null;
 
     void IInitializable.Initialize()
     {
@@ -47,6 +52,8 @@ internal class SongPlayTracker : IInitializable, IDisposable
             _logger.Trace($"Type of multi end actions publisher from di is: {_multiplayerLevelEndActions.GetType()}");
             _multiplayerLevelEndActions.playerDidFinishEvent += OnMultiplayerLevelDidFinish;
         }
+
+        _previousLevelStatsData = CopyLevelStatsData(_playerDataModel.playerData.TryGetPlayerLevelStatsData(_sceneSetupData.beatmapKey));
     }
 
     void IDisposable.Dispose()
@@ -106,7 +113,7 @@ internal class SongPlayTracker : IInitializable, IDisposable
         var ssd = _siraSubmission.Tickets().Length > 0 || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
 
         var extraData = new LevelCompletionResultsExtraData(_sceneSetupData, _scoreTracker.GetImmediateScoreData(), _scoreTracker.FailScoreRecord,
-            ssd, isMulti, isParty);
+            ssd, isMulti, isParty, _previousLevelStatsData);
 
         _extraCompletionDataManager.AddExtraData(results, extraData);
 
@@ -121,5 +128,21 @@ internal class SongPlayTracker : IInitializable, IDisposable
             _logger.Error("Exception caught while emitting level did finish event.");
             _logger.Error(exception);
         }
+    }
+    
+    private static PlayerLevelStatsData? CopyLevelStatsData(PlayerLevelStatsData? data)
+    {
+        if (data == null) return null;
+        return new PlayerLevelStatsData(
+            data.levelID,
+            data.difficulty,
+            data.beatmapCharacteristic,
+            data.highScore,
+            data.maxCombo,
+            data.fullCombo,
+            data.maxRank,
+            data.validScore,
+            data.playCount
+        );
     }
 }
