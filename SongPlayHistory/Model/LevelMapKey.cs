@@ -8,6 +8,7 @@ namespace SongPlayHistory.Model
         public readonly string LevelId;
         public readonly string CharacteristicName;
         public readonly BeatmapDifficulty Difficulty;
+        private readonly string _key;
 
         // Old key format:
         // $"{beatmap.level.levelID}___{(int)beatmap.difficulty}___{beatmapCharacteristicName}"
@@ -17,6 +18,7 @@ namespace SongPlayHistory.Model
             LevelId = levelId;
             CharacteristicName = characteristicName;
             Difficulty = difficulty;
+            _key = $"{LevelId}___{DifficultyToInt(Difficulty)}___{CharacteristicName}";
         }
 
         public LevelMapKey(BeatmapKey beatmap)
@@ -49,9 +51,16 @@ namespace SongPlayHistory.Model
             }
         }
 
-        internal string ToOldKey()
+        internal string ToOldKey() => _key;
+
+        public override bool Equals(object? obj)
         {
-            return $"{LevelId}___{DifficultyToInt(Difficulty)}___{CharacteristicName}";
+            return obj is LevelMapKey key && this._key == key._key;
+        }
+
+        public override int GetHashCode()
+        {
+            return _key.GetHashCode();
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,38 +12,42 @@ namespace SongPlayHistory.SongPlayData;
 internal class ScoringCacheManager: IScoringCacheManager
 {
     [Inject]
-    private readonly PlayerDataModel _playerDataModel = null!;
-    
-    [Inject]
     private readonly BeatmapLevelsModel _beatmapLevelsModel = null!;
     
     [Inject]
-    private readonly BeatmapLevelsEntitlementModel _beatmapLevelsEntitlementModel;
+    private readonly BeatmapLevelsEntitlementModel _beatmapLevelsEntitlementModel = null!;
     
     [Inject]
     private readonly BeatmapDataLoader _beatmapDataLoader = null!;
     
     [Inject]
-    private readonly EnvironmentsListModel _environmentListModel = null!;
-    
-    [Inject]
     private readonly SiraLog _logger = null!;
     
     //TODO use persistent storage cache if needed
-    private readonly Dictionary<LevelMapKey, LevelScoringCache> _cache = new Dictionary<LevelMapKey, LevelScoringCache>();
+    private readonly ConcurrentDictionary<BeatmapKey, LevelScoringCache> _cache = new ConcurrentDictionary<BeatmapKey, LevelScoringCache>();
     
-    public async Task<LevelScoringCache> GetScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel = null, CancellationToken cancellationToken = new())
+    private readonly ConcurrentDictionary<BeatmapKey, Task<LevelScoringCache>> _tasks = new ConcurrentDictionary<BeatmapKey, Task<LevelScoringCache>>();
+    
+    public Task<LevelScoringCache> GetScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel = null, CancellationToken cancellationToken = new())
     {
-        _logger.Debug($"Get scoring cache from Thread {Environment.CurrentManagedThreadId}");
-        var cacheKey = new LevelMapKey(beatmapKey);
-        
-        lock (_cache)
+        if (_cache.TryGetValue(beatmapKey, out var cache))
         {
-            if (_cache.TryGetValue(cacheKey, out var cache))
-            {
-                return cache;
-            }
+            _logger.Trace($"Using scoring data from cache for {beatmapKey.SerializedName()}: {cache}");
+            return Task.FromResult(cache);
         }
+        
+        var loadTask = _tasks.GetOrAdd(beatmapKey, key => LoadScoringInfo(key, beatmapLevel, cancellationToken));
+        if (loadTask.Status is TaskStatus.Canceled or TaskStatus.Faulted)
+        {
+            loadTask = _tasks[beatmapKey] = LoadScoringInfo(beatmapKey, beatmapLevel, cancellationToken);
+        }
+        
+        return loadTask;
+    }
+    
+    private async Task<LevelScoringCache> LoadScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel, CancellationToken cancellationToken)
+    {
+        _logger.Debug($"Loading scoring data for {beatmapKey.SerializedName()}");
         
         cancellationToken.ThrowIfCancellationRequested();
         // await Task.Delay(15000, cancellationToken); // simulate an extreme loading time
@@ -70,9 +74,6 @@ internal class ScoringCacheManager: IScoringCacheManager
         
         var beatmapLevelData = loadResult.beatmapLevelData!;
         
-        var basicBeatmapData = beatmapLevel.GetDifficultyBeatmapData(beatmapKey.beatmapCharacteristic, beatmapKey.difficulty);
-        var envName = basicBeatmapData.environmentName;
-        var envInfo = _environmentListModel.GetEnvironmentInfoBySerializedNameSafe(envName);
         var beatmapData = await _beatmapDataLoader.LoadBeatmapDataAsync(
                 beatmapLevelData, 
                 beatmapKey, 
@@ -106,11 +107,9 @@ internal class ScoringCacheManager: IScoringCacheManager
             IsV2Score = isV2Score
         };
 
-        lock (_cache)
-        {
-            // write cache
-            _cache[cacheKey] = newCache;
-        }
+        // write cache
+        _cache[beatmapKey] = newCache;
+
         cancellationToken.ThrowIfCancellationRequested();
 
         return newCache;
