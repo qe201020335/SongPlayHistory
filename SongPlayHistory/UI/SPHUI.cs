@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using HMUI;
 using IPA.Utilities;
 using BGLib.Polyglot;
+using IPA.Utilities.Async;
 using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
@@ -166,29 +167,27 @@ namespace SongPlayHistory.UI
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
-            Task.Run(async () =>
-            {
-                try
+            Task.Run(() => GetRecordsText(beatmapKey, beatmap, token), token)
+                .ContinueWith(task =>
                 {
-                    await SetRecords(beatmapKey, beatmap, token);
-                }
-                catch (OperationCanceledException e) when (e.CancellationToken == token)
-                {
-                    _logger.Debug($"Update cancelled: {beatmap.songName}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error($"Failed to update SPH ui, {ex.GetType().Name}: {ex.Message}");
-                    _logger.Debug(ex);
-                }
-            }, token);
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        _logger.Error($"Failed to update SPH ui: {task.Exception.Message}");
+                        _logger.Debug(task.Exception);
+                    }
+                    else
+                    {
+                        _hoverHint.text = task.Result; // update the hover hint ui on the main thread
+                    }
+                }, CancellationToken.None, TaskContinuationOptions.NotOnCanceled, UnityMainThreadTaskScheduler.Default);
         }
         
-        private async Task SetRecords(BeatmapKey beatmapKey, BeatmapLevel beatmap, CancellationToken cancellationToken)
+        private async Task<string> GetRecordsText(BeatmapKey beatmapKey, BeatmapLevel beatmap, CancellationToken cancellationToken)
         {
-            _logger.Debug($"Setting records from Thread {Environment.CurrentManagedThreadId}");
+            _logger.Debug($"Preparing records text from Thread {Environment.CurrentManagedThreadId}");
             
-            var task = _scoringCacheManager.GetScoringInfo(beatmapKey, beatmap, cancellationToken);  // let it run in the background first
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var task = _scoringCacheManager.GetScoringInfo(beatmapKey, beatmap, cts.Token);  // let it run in the background first
            
             var config = PluginConfig.Instance;
             var key = new LevelMapKey(beatmapKey);
@@ -203,18 +202,16 @@ namespace SongPlayHistory.UI
 
             var truncated = records.Take(10).ToList();
             
-            if (cancellationToken.IsCancellationRequested) return;
+            if (cancellationToken.IsCancellationRequested) return "";
             if (truncated.Count == 0)
             {
-                _hoverHint.text = "No record";
-                return;
+                cts.Cancel();
+                return "No record";
             }
-            
-            // int fullMaxScore, notesCount;
-            // bool isV2Score;
 
             // then we get the result
             var cache = await task;
+            _logger.Trace($"Got scoring data: {cache}");
             
             var fullMaxScore = cache.MaxMultipliedScore;
             var notesCount = cache.NotesCount;
@@ -291,8 +288,8 @@ namespace SongPlayHistory.UI
                 builder.AppendLine();
             }
  
-            if (cancellationToken.IsCancellationRequested) return;
-            _hoverHint.text = builder.ToString();
+            if (cancellationToken.IsCancellationRequested) return "";
+            return builder.ToString();
         }
 
         private void SetStats(BeatmapKey beatmap)
