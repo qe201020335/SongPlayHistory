@@ -26,6 +26,7 @@ namespace SongPlayHistory.Installers
             // Score Percentage features
             Container.BindInterfacesTo<LevelStatsViewPatch>().AsSingle();
             Container.BindInterfacesTo<ResultsViewControllerPatch>().AsSingle();
+            Container.BindInterfacesTo<MultiplayerResultsTablePatch>().AsSingle();
         }
     }
 }
