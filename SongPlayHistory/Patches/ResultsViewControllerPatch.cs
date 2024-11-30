@@ -1,5 +1,6 @@
 ﻿using SiraUtil.Affinity;
 using SiraUtil.Logging;
+using SongPlayHistory.Configuration;
 using SongPlayHistory.SongPlayTracking;
 using Zenject;
 
@@ -12,6 +13,9 @@ internal class ResultsViewControllerPatch : IAffinity
 
     [Inject]
     private readonly SiraLog _logger = null!;
+
+    [Inject]
+    private readonly PluginConfig _config = null!;
 
     [Inject]
     private readonly ExtraCompletionDataManager _extraCompletionDataManager = null!;
@@ -76,8 +80,11 @@ internal class ResultsViewControllerPatch : IAffinity
         if (previousHighScore <= 0)
         {
             // no previous high score, show percentage only
-            // rich text formatting copied from Score Percentage
-            __instance._rankText.text = $"<line-height=27.5%><size=60%>{resultScorePercentage:F2}<size=45%>%";
+            if (_config.ShowPercentageAtLevelEnd)
+            {
+                // rich text formatting copied from Score Percentage
+                __instance._rankText.text = $"<line-height=27.5%><size=60%>{resultScorePercentage:F2}<size=45%>%";
+            }
         }
         else
         {
@@ -91,11 +98,24 @@ internal class ResultsViewControllerPatch : IAffinity
             var highScorePercentage = previousHighScore / (float)maxScore * 100;
             var percentDiff = resultScorePercentage - highScorePercentage;
 
-            rankText.text = $"<line-height=27.5%><size=60%>{resultScorePercentage:F2}<size=45%>%\n<color={color}><size=40%>{percentDiff:+0.00;-0.00;+0}<size=30%>%";
-            __instance._newHighScoreText.SetActive(false);
+                                    
+            if (_config.ShowPercentageAtLevelEnd)
+            {
+                var text = $"<line-height=27.5%><size=60%>{resultScorePercentage:F2}<size=45%>%";
+                if (_config.ShowPercentageDifferenceAtLevelEnd)
+                {
+                    text += $"\n<color={color}><size=40%>{percentDiff:+0.00;-0.00;+0}<size=30%>%";
+                }
+                
+                rankText.text = text;
+            }
 
-            // show score with difference
-            scoreText.text = $"<line-height=27.5%><size=60%>{ScoreFormatter.Format(resultScore)}\n<size=40%><color={color}><size=40%>{scoreDiff:+#;-#;+0}";
+            if (_config.ShowScoreDifferenceAtLevelEnd)
+            {
+                __instance._newHighScoreText.SetActive(false);
+                // show score with difference
+                scoreText.text = $"<line-height=27.5%><size=60%>{ScoreFormatter.Format(resultScore)}\n<size=40%><color={color}><size=40%>{scoreDiff:+#;-#;+0}";
+            }
         }
     }
 }
