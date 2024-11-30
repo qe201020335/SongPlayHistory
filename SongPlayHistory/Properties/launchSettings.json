@@ -3,7 +3,7 @@
     "Beat Saber": {
       "commandName": "Executable",
       "executablePath": "$(BeatSaberDir)\\Beat Saber.exe",
-      "commandLineArgs": "--verbose --trace",
+      "commandLineArgs": "--verbose --trace --plugin-logs",
       "workingDirectory": "$(BeatSaberDir)",
       "environmentVariables": {
         "SteamAppId": "620980"
@@ -12,7 +12,7 @@
     "Beat Saber FPFC": {
       "commandName": "Executable",
       "executablePath": "$(BeatSaberDir)\\Beat Saber.exe",
-      "commandLineArgs": "fpfc --verbose --trace",
+      "commandLineArgs": "fpfc --verbose --trace --plugin-logs",
       "workingDirectory": "$(BeatSaberDir)",
       "environmentVariables": {
         "SteamAppId": "620980"

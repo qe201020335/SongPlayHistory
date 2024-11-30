@@ -205,7 +205,7 @@ namespace SongPlayHistory.UI
             if (cancellationToken.IsCancellationRequested) return "";
             if (truncated.Count == 0)
             {
-                cts.Cancel();
+                // cts.Cancel();  //TODO this will also cancel for everyone else waiting for the data, fix it
                 return "No record";
             }
 

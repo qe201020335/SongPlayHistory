@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,20 +27,41 @@ internal class ScoringCacheManager: IScoringCacheManager
     //TODO use persistent storage cache if needed
     private readonly ConcurrentDictionary<BeatmapKey, LevelScoringCache> _cache = new ConcurrentDictionary<BeatmapKey, LevelScoringCache>();
     
-    private readonly ConcurrentDictionary<BeatmapKey, Task<LevelScoringCache>> _tasks = new ConcurrentDictionary<BeatmapKey, Task<LevelScoringCache>>();
+    private readonly Dictionary<BeatmapKey, Task<LevelScoringCache>> _tasks = new Dictionary<BeatmapKey, Task<LevelScoringCache>>();
     
     public Task<LevelScoringCache> GetScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel = null, CancellationToken cancellationToken = new())
     {
         if (_cache.TryGetValue(beatmapKey, out var cache))
         {
-            _logger.Trace($"Using scoring data from cache for {beatmapKey.SerializedName()}: {cache}");
+            _logger.Trace($"Scoring data cache hit for {beatmapKey.SerializedName()}: {cache}");
             return Task.FromResult(cache);
         }
-        
-        var loadTask = _tasks.GetOrAdd(beatmapKey, key => LoadScoringInfo(key, beatmapLevel, cancellationToken));
-        if (loadTask.Status is TaskStatus.Canceled or TaskStatus.Faulted)
+
+        _logger.Trace($"Scoring data cache miss for {beatmapKey.SerializedName()}");
+        Task<LevelScoringCache> loadTask;
+        lock (_tasks)  // ConcurrentDictionary is not atomic for AddOrUpdate and the factory methods can be called multiple times
         {
-            loadTask = _tasks[beatmapKey] = LoadScoringInfo(beatmapKey, beatmapLevel, cancellationToken);
+            if (_tasks.TryGetValue(beatmapKey, out var existing))
+            {
+                if (existing.Status is TaskStatus.Canceled or TaskStatus.Faulted)
+                {
+                    _logger.Warn("Previous scoring data load task was cancelled or faulted, retrying.");
+                    var newTask = LoadScoringInfo(beatmapKey, beatmapLevel, cancellationToken);
+                    _tasks[beatmapKey] = newTask;
+                    loadTask = newTask;
+                }
+                else
+                {
+                    loadTask = existing;
+                }
+            }
+            else
+            {
+                _logger.Trace("No previous scoring data load task found, creating new task.");
+                var newTask = LoadScoringInfo(beatmapKey, beatmapLevel, cancellationToken);
+                _tasks[beatmapKey] = newTask;
+                loadTask = newTask;
+            }
         }
         
         return loadTask;
@@ -47,14 +69,18 @@ internal class ScoringCacheManager: IScoringCacheManager
     
     private async Task<LevelScoringCache> LoadScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel, CancellationToken cancellationToken)
     {
-        _logger.Debug($"Loading scoring data for {beatmapKey.SerializedName()}");
+        _logger.Debug($"Loading scoring data for {beatmapKey.SerializedName()} on Thread {Environment.CurrentManagedThreadId}");
+
+#if DEBUG
+        var startTime = DateTime.Now;
+#endif
         
         cancellationToken.ThrowIfCancellationRequested();
         // await Task.Delay(15000, cancellationToken); // simulate an extreme loading time
 
         if (beatmapLevel == null)
         {
-            _logger.Warn("BeatmapLevel is null, getting from BeatmapLevelsModel.");
+            _logger.Trace("BeatmapLevel is null, getting from BeatmapLevelsModel.");
             beatmapLevel = _beatmapLevelsModel.GetBeatmapLevel(beatmapKey.levelId);
             if (beatmapLevel == null)
             {
@@ -63,7 +89,7 @@ internal class ScoringCacheManager: IScoringCacheManager
             }
         }
         
-        _logger.Debug("Loading beat map level data from BeatmapLevelsModel.");
+        _logger.Trace("Loading beat map level data from BeatmapLevelsModel.");
         var dataVersion = await _beatmapLevelsEntitlementModel.GetLevelDataVersionAsync(beatmapKey.levelId, cancellationToken);
         var loadResult = await _beatmapLevelsModel.LoadBeatmapLevelDataAsync(beatmapKey.levelId, dataVersion, cancellationToken);
         if (loadResult.isError)
@@ -110,6 +136,11 @@ internal class ScoringCacheManager: IScoringCacheManager
         // write cache
         _cache[beatmapKey] = newCache;
 
+#if DEBUG
+        var timeSpan = DateTime.Now - startTime;
+        _logger.Info($"Took {timeSpan.TotalSeconds:F3} sec to load scoring data for {beatmapLevel.songName} ({beatmapKey.beatmapCharacteristic.compoundIdPartName}{beatmapKey.difficulty.SerializedName()})");
+#endif
+        
         cancellationToken.ThrowIfCancellationRequested();
 
         return newCache;
