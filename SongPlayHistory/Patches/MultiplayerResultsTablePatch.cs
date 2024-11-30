@@ -6,6 +6,7 @@ using SiraUtil.Affinity;
 using SiraUtil.Logging;
 using SongPlayHistory.Model;
 using SongPlayHistory.SongPlayData;
+using UnityEngine;
 using Zenject;
 
 namespace SongPlayHistory.Patches;
@@ -78,36 +79,14 @@ public class MultiplayerResultsTablePatch: IAffinity
             multiResults.playerLevelEndState != MultiplayerLevelCompletionResults.MultiplayerPlayerLevelEndState.SongFinished
             || multiResults.levelCompletionResults.levelEndStateType != LevelCompletionResults.LevelEndStateType.Cleared)
         {
-            RestoreSize(cell, tableView._cellPrefab);
             return;
         }
-        
-        MakeRoom(cell, tableView._cellPrefab);
+
         var results = multiData.multiplayerLevelCompletionResults.levelCompletionResults;
-        var percentage = results.multipliedScore / (float)scoringData.MaxMultipliedScore;
-        cell._rankText.text = $"{percentage:P2}";
-    }
-
-    private void MakeRoom(ResultsTableCell cell, ResultsTableCell prefab)
-    {
-        var scoreMin = prefab._scoreText.rectTransform.offsetMin;
-        var scoreMax = prefab._scoreText.rectTransform.offsetMax;
-        var rankMin = prefab._rankText.rectTransform.offsetMin;
-        rankMin.x -= 6;
-        scoreMax.x -= 6;
-        scoreMin.x -= 6;
-        cell._rankText.rectTransform.offsetMin = rankMin;
-        cell._scoreText.rectTransform.offsetMin = scoreMin;
-        cell._scoreText.rectTransform.offsetMax = scoreMax;
-    }
-
-    private void RestoreSize(ResultsTableCell cell, ResultsTableCell prefab)
-    {
-        var scoreMin = prefab._scoreText.rectTransform.offsetMin;
-        var scoreMax = prefab._scoreText.rectTransform.offsetMax;
-        var rankMin = prefab._rankText.rectTransform.offsetMin;
-        cell._rankText.rectTransform.offsetMin = rankMin;
-        cell._scoreText.rectTransform.offsetMin = scoreMin;
-        cell._scoreText.rectTransform.offsetMax = scoreMax;
+        var percentage = results.multipliedScore / (float)scoringData.MaxMultipliedScore * 100;
+        cell._scoreText.text = $"{ScoreFormatter.Format(results.cumulativeScore)} ({percentage:F2}%)";
+        var min = cell._scoreText.rectTransform.offsetMin;
+        min.x = -42;
+        cell._scoreText.rectTransform.offsetMin = min;
     }
 }
