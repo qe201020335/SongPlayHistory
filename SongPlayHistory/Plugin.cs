@@ -37,12 +37,13 @@ namespace SongPlayHistory
             Log = logger;
             _harmony = new Harmony(HarmonyId);
 
-            PluginConfig.Instance = config.Generated<PluginConfig>();
+            var pluginConfig = config.Generated<PluginConfig>();
+            PluginConfig.Instance = pluginConfig;
             
             zenjector.UseLogger();
             zenjector.Install<SongPlayTrackingInstaller>(Location.MultiPlayer | Location.StandardPlayer);
             zenjector.Install<MenuInstaller>(Location.Menu);
-            zenjector.Install<AppInstaller>(Location.App);
+            zenjector.Install<AppInstaller>(Location.App, pluginConfig);
         }
 
         [OnStart]

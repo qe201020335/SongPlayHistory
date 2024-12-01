@@ -13,6 +13,8 @@ public class LevelCompletionResultsExtraData
     public bool IsMultiplayer { get; }
 
     public bool IsParty { get; }
+    
+    public PlayerLevelStatsData? PreviousPlayerLevelStats { get; }
 
     public bool IsPractice => SceneSetupData.practiceSettings != null;
 
@@ -20,7 +22,7 @@ public class LevelCompletionResultsExtraData
 
 
     internal LevelCompletionResultsExtraData(GameplayCoreSceneSetupData setupData, ScoreRecord scoringData, ScoreRecord? scoringDataWhenEnergyReached0,
-        bool scoreSubmissionDisabled, bool isMulti, bool isParty)
+        bool scoreSubmissionDisabled, bool isMulti, bool isParty, PlayerLevelStatsData? previousPlayerLevelStats)
     {
         SceneSetupData = setupData;
         ScoringData = scoringData;
@@ -28,5 +30,6 @@ public class LevelCompletionResultsExtraData
         ScoreSubmissionDisabled = scoreSubmissionDisabled;
         IsMultiplayer = isMulti;
         IsParty = isParty;
+        PreviousPlayerLevelStats = previousPlayerLevelStats;
     }
 }

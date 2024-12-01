@@ -7,14 +7,16 @@
   "description": "A score and vote tracker with simple in-game UI.",
   "gameVersion": "1.38.0",
   "loadBefore": [
-    "SongPlayHistoryContinued"
+    "SongPlayHistoryContinued",
+    "ScorePercentage"
   ],
   "loadAfter": [
     "BeatSaverVoting",
     "DiTails"
   ],
   "conflictsWith": {
-    "SongPlayHistoryContinued": ">=0.0.0"
+    "SongPlayHistoryContinued": ">=0.0.0",
+    "ScorePercentage": ">=0.0.0"
   },
   "dependsOn": {
     "BSIPA": "^4.2.2",

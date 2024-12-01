@@ -1,6 +1,19 @@
-﻿<settings-container>
-  <bool-setting text='Show Failed' value='show-failed' hover-hint='Display failed records'></bool-setting>
-  <bool-setting text='Average Accuracy' value='average-accuracy' hover-hint='Exclude remaining notes when evaluating accuracy'></bool-setting>
-  <bool-setting text='Sort by Date' value='sort-by-date' hover-hint='Latest records (otherwise best records) on the top'></bool-setting>
-  <bool-setting text='Show Up/Downvotes' value='show-votes' hover-hint='Display like and dislike icons in the song list'></bool-setting>
+﻿<settings-container xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
+  <horizontal>
+    <text text="Song Play History Settings" italics="true" font-size="5"/>
+  </horizontal>
+  <bool-setting text='Show Failed' value='show-failed' hover-hint='Display failed records'/>
+  <bool-setting text='Average Accuracy' value='average-accuracy' hover-hint='Exclude remaining notes when evaluating accuracy'/>
+  <bool-setting text='Sort by Date' value='sort-by-date' hover-hint='Latest records (otherwise best records) on the top'/>
+  <bool-setting text='Show Up/Downvotes' value='show-votes' hover-hint='Display like and dislike icons in the song list'/>
+
+  <horizontal pad-top="4">
+    <text text="Score Percentage Settings" italics="true" font-size="5"/>
+  </horizontal>
+  <bool-setting text='Enable Score Percentage' value='enable-score-percentage'/>
+  <bool-setting text='High Score Percentage' value='highscore-percentage' hover-hint='Show percentage at the menu high score'/>
+  <bool-setting text='Result Percentage' value='result-percentage' hover-hint='Replace the Rank label on the level result screen with percentage'/>
+  <bool-setting text='Result Score Difference' value='result-score-diff' hover-hint='Show score difference on the level result screen'/>
+  <bool-setting text='Result Percentage Difference' value='result-percentage-diff' hover-hint='Show percentage difference on the level result screen'/>
+  <bool-setting text='Multiplayer Results Percentage' value='multi-result-percentage' hover-hint='Show percentages on the multiplayer results screen'/>
 </settings-container>
