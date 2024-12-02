@@ -26,9 +26,9 @@ internal class ScoringCacheManager: IScoringCacheManager
     
     //TODO use persistent storage cache if needed
     private readonly ConcurrentDictionary<BeatmapKey, LevelScoringCache> _cache = new ConcurrentDictionary<BeatmapKey, LevelScoringCache>();
-    
-    private readonly Dictionary<BeatmapKey, Task<LevelScoringCache>> _tasks = new Dictionary<BeatmapKey, Task<LevelScoringCache>>();
-    
+
+    private readonly Dictionary<BeatmapKey, LoadTask> _tasks = new Dictionary<BeatmapKey, LoadTask>();
+
     public Task<LevelScoringCache> GetScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel = null, CancellationToken cancellationToken = new())
     {
         if (_cache.TryGetValue(beatmapKey, out var cache))
@@ -38,38 +38,114 @@ internal class ScoringCacheManager: IScoringCacheManager
         }
 
         _logger.Trace($"Scoring data cache miss for {beatmapKey.SerializedName()}");
-        Task<LevelScoringCache> loadTask;
+        Task<LevelScoringCache> resultTask;
+        var cancellable = cancellationToken.CanBeCanceled;
         lock (_tasks)  // ConcurrentDictionary is not atomic for AddOrUpdate and the factory methods can be called multiple times
         {
-            if (_tasks.TryGetValue(beatmapKey, out var existing))
+            if (_tasks.TryGetValue(beatmapKey, out var loadTask))
             {
-                if (existing.Status is TaskStatus.Canceled or TaskStatus.Faulted)
+                var task = loadTask.Task;
+                if (task.Status is TaskStatus.Canceled or TaskStatus.Faulted)
                 {
                     _logger.Warn("Previous scoring data load task was cancelled or faulted, retrying.");
-                    var newTask = LoadScoringInfo(beatmapKey, beatmapLevel, cancellationToken);
-                    _tasks[beatmapKey] = newTask;
-                    loadTask = newTask;
-                }
-                else
-                {
-                    loadTask = existing;
+                    loadTask = CreateAndAddLoadTask(beatmapKey, beatmapLevel, cancellable);
                 }
             }
             else
             {
                 _logger.Trace("No previous scoring data load task found, creating new task.");
-                var newTask = LoadScoringInfo(beatmapKey, beatmapLevel, cancellationToken);
-                _tasks[beatmapKey] = newTask;
-                loadTask = newTask;
+                loadTask = CreateAndAddLoadTask(beatmapKey, beatmapLevel, cancellable);
+            }
+
+            if (cancellable)
+            {
+                resultTask = CreateCancellableTaskFromLoadTask(loadTask, cancellationToken);
+                loadTask.RequestOne();
+            }
+            else
+            {
+                resultTask = Task.Run(async () => await loadTask.Task, cancellationToken);
+                loadTask.SetNotCancellable();
             }
         }
         
-        return loadTask;
+        return resultTask;
+    }
+
+    private Task<LevelScoringCache> CreateCancellableTaskFromLoadTask(LoadTask loadTask, CancellationToken cancellationToken)
+    {
+        var cancelTaskSource = new TaskCompletionSource<bool>();
+        cancellationToken.Register(() =>
+        {
+            cancelTaskSource.TrySetResult(true);
+            lock (_tasks)
+            {
+                var beatmapKey = loadTask.BeatmapKey;
+                if (loadTask.CancelOne())
+                {
+                    _logger.Trace($"Scoring data load for {beatmapKey.SerializedName()} was cancelled.");
+                    if (_tasks.TryGetValue(beatmapKey, out var taskInDictionary) && taskInDictionary == loadTask)
+                    {
+                        _tasks.Remove(beatmapKey);
+                    }
+                }
+            }
+        });
+        var resultTask = Task.Run(async () =>
+        {
+            var loadingTask = loadTask.Task;
+            var finishedTask = await Task.WhenAny(loadingTask, cancelTaskSource.Task);
+            if (finishedTask == loadingTask)
+            {
+                return await loadTask.Task;
+            }
+                    
+            throw new TaskCanceledException();
+        }, cancellationToken);
+        return resultTask;
+    }
+
+    private LoadTask CreateAndAddLoadTask(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel, bool isCancellable)
+    {
+        var cts = isCancellable ? new CancellationTokenSource() : null;
+        var loadingTask = LoadScoringInfo(beatmapKey, beatmapLevel, cts?.Token ?? CancellationToken.None);
+        var entry = new LoadTask(beatmapKey, loadingTask, cts);
+        loadingTask.ContinueWith(task =>
+        {
+#if DEBUG
+            _logger.Debug($"Load task for {beatmapKey.SerializedName()} finished with status {task.Status}");
+#endif
+            // it either succeeded with data written into the cache dictionary or exploded (cancel or fault)
+            lock (_tasks)
+            {
+                entry.SetFinishedOrFaulted();
+                // a new one may have been added because it gets the lock before us and we are faulted
+                if (_tasks.TryGetValue(beatmapKey, out var request) && request.Task == task)
+                {
+                    _tasks.Remove(beatmapKey); 
+                }
+            }
+        }, CancellationToken.None, TaskContinuationOptions.NotOnCanceled, TaskScheduler.Default);
+        _tasks[beatmapKey] = entry;
+        return entry;
     }
     
     private async Task<LevelScoringCache> LoadScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel, CancellationToken cancellationToken)
     {
         _logger.Debug($"Loading scoring data for {beatmapKey.SerializedName()} on Thread {Environment.CurrentManagedThreadId}");
+
+        if (_cache.TryGetValue(beatmapKey, out var cache))
+        {
+            // rare case where (in order):
+            // - a request checked cache and it missed
+            // - the previous load wrote cache
+            // - the previous load got cancelled and threw before return
+            // - the request got the lock before the task clean up logic
+            // - the request checked that the existing was cancelled
+            // - the request created a new task
+            _logger.Trace($"Scoring data cache hit for {beatmapKey.SerializedName()}: {cache}");
+            return cache;
+        }
 
 #if DEBUG
         var startTime = DateTime.Now;
@@ -144,5 +220,67 @@ internal class ScoringCacheManager: IScoringCacheManager
         cancellationToken.ThrowIfCancellationRequested();
 
         return newCache;
+    }
+    
+    private class LoadTask
+    {
+        public readonly BeatmapKey BeatmapKey;
+        
+        public readonly Task<LevelScoringCache> Task;
+    
+        private readonly CancellationTokenSource? _cancellationTokenSource;
+        
+        private int _waitCount = 0;
+        
+        private bool _cancellable;
+        
+        private bool _cancelled = false;
+        
+        private bool _finished = false;
+        
+        public LoadTask(BeatmapKey beatmapKey, Task<LevelScoringCache> task, CancellationTokenSource? cancellationTokenSource)
+        {
+            BeatmapKey = beatmapKey;
+            Task = task;
+            _cancellationTokenSource = cancellationTokenSource;
+            _cancellable = cancellationTokenSource != null;
+        }
+        
+        public void RequestOne()
+        {
+            if (!_cancellable) return;
+            if (_cancelled) throw new InvalidOperationException("This loading task has already been cancelled.");
+            _waitCount++;
+        }
+
+        public void SetFinishedOrFaulted()
+        {
+            if (_cancelled || _finished) return;
+            _finished = true;
+            _cancellationTokenSource?.Dispose();
+        }
+
+        public void SetNotCancellable()
+        {
+            _cancellable = false;
+            _waitCount = 0;
+        }
+
+        /// <returns>True if the underlying task is cancelled because of this call,
+        /// False if there are still others waiting, or it has already been cancelled </returns>
+        public bool CancelOne()
+        {
+            if (_finished || _cancelled || !_cancellable) return false;
+            _waitCount--;
+            if (_waitCount <= 0)
+            {
+                _cancelled = true;
+                _cancellationTokenSource!.Cancel();
+                _cancellationTokenSource?.Dispose();
+                return true;
+            }
+
+            return false;
+        }
     }
 }
