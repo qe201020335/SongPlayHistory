@@ -9,6 +9,7 @@ namespace SongPlayHistory.Configuration
     {
         public static PluginConfig Instance { get; set; } = null!;
 
+        public bool EnableSongPlayHistory { get; set; } = true;
         public bool ShowFailed { get; set; } = true;
         public bool AverageAccuracy { get; set; } = true;
         public bool SortByDate { get; set; } = false;

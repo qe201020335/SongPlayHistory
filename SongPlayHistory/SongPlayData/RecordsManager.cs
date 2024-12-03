@@ -6,6 +6,7 @@ using System.Linq;
 using IPA.Utilities;
 using Newtonsoft.Json;
 using SiraUtil.Logging;
+using SongPlayHistory.Configuration;
 using SongPlayHistory.Model;
 using SongPlayHistory.SongPlayTracking;
 using SongPlayHistory.Utils;
@@ -21,6 +22,9 @@ namespace SongPlayHistory.SongPlayData
 
         [Inject]
         private readonly SiraLog _logger = null!;
+
+        [Inject]
+        private readonly PluginConfig _config = null!;
 
         public void Initialize()
         {
@@ -54,8 +58,10 @@ namespace SongPlayHistory.SongPlayData
             
             // TODO remove bad records?
             
-            SongPlayTracker.StandardMultiLevelDidFinish -= OnStandardMultiLevelFinished;
-            SongPlayTracker.StandardMultiLevelDidFinish += OnStandardMultiLevelFinished;
+            if (_config.EnableSongPlayHistory)
+            {
+                SongPlayTracker.StandardMultiLevelDidFinish += OnStandardMultiLevelFinished;
+            }
         }
 
         private bool LoadRecords(string path, out ConcurrentDictionary<string, IList<Record>> records)

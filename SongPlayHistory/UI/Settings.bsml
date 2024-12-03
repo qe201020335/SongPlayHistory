@@ -2,6 +2,7 @@
   <horizontal>
     <text text="Song Play History Settings" italics="true" font-size="5"/>
   </horizontal>
+  <bool-setting text='Enable Song Play History' value='enable-sph' hover-hint='Will not save new records if disabled'/>
   <bool-setting text='Show Failed' value='show-failed' hover-hint='Display failed records'/>
   <bool-setting text='Average Accuracy' value='average-accuracy' hover-hint='Exclude remaining notes when evaluating accuracy'/>
   <bool-setting text='Sort by Date' value='sort-by-date' hover-hint='Latest records (otherwise best records) on the top'/>

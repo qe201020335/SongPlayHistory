@@ -20,9 +20,13 @@ namespace SongPlayHistory.Installers
             _logger.Debug("Binding settings menu and manager");
             Container.BindInterfacesTo<MenuSettingsManager>().AsSingle().NonLazy();
             Container.BindInterfacesAndSelfTo<SettingsController>().AsSingle();
-            
-            _logger.Debug("Binding SPHUI");
-            Container.BindInterfacesTo<SPHUI>().AsSingle();
+
+            if (_config.EnableSongPlayHistory)
+            {
+                _logger.Debug("Binding SPHUI");
+                Container.BindInterfacesTo<SPHUI>().AsSingle();
+            }
+
             _logger.Debug("Binding InMenuVoteTrackingHelper");
             Container.BindInterfacesAndSelfTo<InMenuVoteTrackingHelper>().AsSingle().NonLazy();
 

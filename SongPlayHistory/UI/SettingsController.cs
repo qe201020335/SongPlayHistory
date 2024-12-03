@@ -5,6 +5,13 @@ namespace SongPlayHistory.UI
 {
     public class SettingsController
     {
+        [UIValue("enable-sph")]
+        public bool EnableSongPlayHistory
+        {
+            get => PluginConfig.Instance.EnableSongPlayHistory;
+            set => PluginConfig.Instance.EnableSongPlayHistory = value;
+        }
+
         [UIValue("show-failed")]
         public bool ShowFailed
         {
