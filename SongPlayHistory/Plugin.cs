@@ -22,6 +22,7 @@ namespace SongPlayHistory
     {
         private const string HarmonyId = "com.github.qe201020335.SongPlayHistory";
         internal const string BeatSaverVotingId = "BeatSaverVoting";
+        internal const string MultiplayerInfoId = "MultiplayerInfo";
         
         public static Plugin Instance { get; private set; } = null!;
         internal static Logger Log { get; private set; } = null!;
@@ -29,6 +30,7 @@ namespace SongPlayHistory
         private readonly Harmony _harmony;
 
         internal bool BeatSaverVotingInstalled { get; private set; }
+        internal bool MultiplayerInfoInstalled { get; private set; }
 
         [Init]
         public Plugin(Logger logger, Config config, Zenjector zenjector)
@@ -49,12 +51,18 @@ namespace SongPlayHistory
         [OnStart]
         public void OnStart()
         {
-            // PatchSongListVoteIcon(PluginConfig.Instance.ShowVotes);
             BeatSaverVotingInstalled = PluginManager.EnabledPlugins.Any(metadata => metadata.Id == BeatSaverVotingId);
+            MultiplayerInfoInstalled = PluginManager.EnabledPlugins.Any(metadata => metadata.Id == MultiplayerInfoId);
             if (!Harmony.HasAnyPatches(HarmonyId))
             {
                 _harmony.PatchAll(Assembly.GetExecutingAssembly());
             }
+        }
+
+        [OnExit]
+        public void OnExit()
+        {
+            
         }
     }
 }

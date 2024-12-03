@@ -17,4 +17,8 @@
   <bool-setting text='Result Score Difference' value='result-score-diff' hover-hint='Show score difference on the level result screen'/>
   <bool-setting text='Result Percentage Difference' value='result-percentage-diff' hover-hint='Show percentage difference on the level result screen'/>
   <bool-setting text='Multiplayer Results Percentage' value='multi-result-percentage' hover-hint='Show percentages on the multiplayer results screen'/>
+  <vertical active="~multiplayer-info-installed" child-align="MiddleLeft" horizontal-fit="PreferredSize" vertical-fit="PreferredSize">
+    <text color="#ffcc00" text="MultiplayerInfo is installed!"/>
+    <text color="#ffcc00" text="Score percentage at multiplayer results may not display correctly!"/>
+  </vertical>
 </settings-container>

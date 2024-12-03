@@ -81,5 +81,8 @@ namespace SongPlayHistory.UI
             get => PluginConfig.Instance.ShowPercentageAtMultiplayerResults;
             set => PluginConfig.Instance.ShowPercentageAtMultiplayerResults = value;
         }
+        
+        [UIValue("multiplayer-info-installed")]
+        public bool MultiplayerInfoInstalled => Plugin.Instance.MultiplayerInfoInstalled;
     }
 }
