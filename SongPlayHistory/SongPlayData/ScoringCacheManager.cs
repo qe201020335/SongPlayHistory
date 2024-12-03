@@ -97,6 +97,7 @@ internal class ScoringCacheManager: IScoringCacheManager
             var finishedTask = await Task.WhenAny(loadingTask, cancelTaskSource.Task);
             if (finishedTask == loadingTask)
             {
+                cancelTaskSource.TrySetResult(false);
                 return await loadTask.Task;
             }
                     
