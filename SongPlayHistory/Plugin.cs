@@ -53,16 +53,13 @@ namespace SongPlayHistory
         {
             BeatSaverVotingInstalled = PluginManager.EnabledPlugins.Any(metadata => metadata.Id == BeatSaverVotingId);
             MultiplayerInfoInstalled = PluginManager.EnabledPlugins.Any(metadata => metadata.Id == MultiplayerInfoId);
-            if (!Harmony.HasAnyPatches(HarmonyId))
-            {
-                _harmony.PatchAll(Assembly.GetExecutingAssembly());
-            }
+            _harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
 
         [OnExit]
         public void OnExit()
         {
-            
+            _harmony.UnpatchSelf();
         }
     }
 }
