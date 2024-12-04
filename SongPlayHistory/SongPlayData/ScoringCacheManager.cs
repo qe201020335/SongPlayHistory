@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using IPA.Utilities;
 using SiraUtil.Logging;
 using SongPlayHistory.Model;
 using Zenject;
@@ -31,6 +32,8 @@ internal class ScoringCacheManager: IScoringCacheManager
 
     public Task<LevelScoringCache> GetScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel = null, CancellationToken cancellationToken = new())
     {
+        if (!beatmapKey.IsValid()) throw new ArgumentException("BeatmapKey is invalid", nameof(beatmapKey));
+
         if (_cache.TryGetValue(beatmapKey, out var cache))
         {
             _logger.Trace($"Scoring data cache hit for {beatmapKey.SerializedName()}: {cache}");
@@ -38,6 +41,11 @@ internal class ScoringCacheManager: IScoringCacheManager
         }
 
         _logger.Trace($"Scoring data cache miss for {beatmapKey.SerializedName()}");
+        return Task.Run(() => GetScoringInfoTask(beatmapKey, beatmapLevel, cancellationToken), cancellationToken);
+    }
+
+    private Task<LevelScoringCache> GetScoringInfoTask(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel, CancellationToken cancellationToken)
+    {
         Task<LevelScoringCache> resultTask;
         var cancellable = cancellationToken.CanBeCanceled;
         lock (_tasks)  // ConcurrentDictionary is not atomic for AddOrUpdate and the factory methods can be called multiple times
@@ -133,7 +141,7 @@ internal class ScoringCacheManager: IScoringCacheManager
     
     private async Task<LevelScoringCache> LoadScoringInfo(BeatmapKey beatmapKey, BeatmapLevel? beatmapLevel, CancellationToken cancellationToken)
     {
-        _logger.Debug($"Loading scoring data for {beatmapKey.SerializedName()} on Thread {Environment.CurrentManagedThreadId}");
+        _logger.Debug($"Loading scoring data for {beatmapKey.SerializedName()}");
 
         if (_cache.TryGetValue(beatmapKey, out var cache))
         {
@@ -148,12 +156,15 @@ internal class ScoringCacheManager: IScoringCacheManager
             return cache;
         }
 
-#if DEBUG
-        var startTime = DateTime.Now;
-#endif
+        await UnityGame.SwitchToMainThreadAsync();
         
         cancellationToken.ThrowIfCancellationRequested();
         // await Task.Delay(15000, cancellationToken); // simulate an extreme loading time
+
+#if DEBUG
+        _logger.Trace("Got main thread!");
+        var startTime = DateTime.Now;
+#endif
 
         if (beatmapLevel == null)
         {
