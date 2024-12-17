@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using SongCore.Utilities;
+using SongCore;
 using SongPlayHistory.Model;
 using SongPlayHistory.SongPlayData;
 
@@ -66,7 +66,8 @@ namespace SongPlayHistory.Utils
 
         internal static string? GetLowerCaseCustomLevelHash(BeatmapLevel level)
         {
-            return level.levelID.StartsWith("custom_level_") ? Hashing.GetCustomLevelHash(level).ToLower() : null;
+            var hash = Collections.GetCustomLevelHash(level.levelID).ToLower();
+            return string.IsNullOrWhiteSpace(hash) ? null : hash;
         }
         
         internal static IList<ISongPlayRecord> Copy(this IEnumerable<Record> records)
