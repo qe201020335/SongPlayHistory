@@ -42,6 +42,13 @@ internal class SongPlayTracker : IInitializable, IDisposable
     void IInitializable.Initialize()
     {
         _logger.Trace("Initializing SongPlayTracker");
+        
+        if (Utils.Utils.IsInReplay())
+        {
+            _logger.Info("This is a replay, not tracking.");
+            return;
+        }
+        
         if (_standardTransitionData != null) // this will always be true
         {
             _standardTransitionData.didFinishEvent += OnStandardLevelDidFinish;
@@ -104,11 +111,11 @@ internal class SongPlayTracker : IInitializable, IDisposable
 
         if (Utils.Utils.IsInReplay())
         {
-            _logger.Info("It was a replay, ignored.");
+            _logger.Debug("It was a replay, ignored.");
             return;
         }
 
-        _logger.Debug("Standard/Multi level finished, preparing extra results data");
+        _logger.Info("Standard/Multi level finished, preparing extra results data");
 
         var ssd = _siraSubmission.Tickets().Length > 0 || ScoreSubmission.Disabled || ScoreSubmission.ProlongedDisabled;
 
