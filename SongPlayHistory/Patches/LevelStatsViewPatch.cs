@@ -22,15 +22,14 @@ internal class LevelStatsViewPatch : IAffinity
     }
 
     [AffinityPostfix]
-    [AffinityPatch(typeof(LevelStatsView), nameof(LevelStatsView.ShowStats), AffinityMethodType.Normal, null, typeof(PlayerLevelStatsData))]
-    private void SetLevelStats(LevelStatsView __instance, PlayerLevelStatsData playerLevelStats)
+    [AffinityPatch(typeof(LevelStatsView), nameof(LevelStatsView.ShowStats))]
+    private void SetLevelStats(LevelStatsView __instance, BeatmapKey beatmapKey, PlayerData playerData)
     {
         _cts.Cancel();
         _cts.Dispose();
         _cts = new CancellationTokenSource();
 
-        var highScore = playerLevelStats.highScore;
-        var beatmapKey = playerLevelStats.GetBeatmapKey();
+        var highScore = playerData.TryGetPlayerLevelStatsData(beatmapKey)?.highScore ?? 0;
 
         if (highScore > 0) ShowScorePercentage(__instance._highScoreText, beatmapKey, highScore, _cts.Token);
     }
