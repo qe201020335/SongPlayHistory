@@ -47,7 +47,7 @@ namespace SongPlayHistory.SongPlayTracking
 
         private void OnNoteMiss(NoteController noteController)
         {
-            _notesPassed++;
+            if (noteController.noteData.gameplayType != NoteData.GameplayType.Bomb) _notesPassed++;
         }
 
         private void OnEnergyDidReach0()
