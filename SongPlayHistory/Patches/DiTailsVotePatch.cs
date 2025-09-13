@@ -10,7 +10,15 @@ namespace SongPlayHistory.Patches
     [HarmonyPatch]
     internal class DiTailsVotePatch
     {
-        private static readonly MethodBase? DiTailsVote = AccessTools.Method("DiTails.UI.DetailViewHost:Vote", new[] { typeof(bool) });
+        private static MethodBase? DiTailsVote;// = AccessTools.Method("DiTails.UI.DetailViewHost:Vote", new[] { typeof(bool) });
+
+        static DiTailsVotePatch()
+        {
+            DiTailsVote = Plugin.Instance.DiTailsMetadata?.Assembly
+                .GetType("DiTails.UI.DetailViewHost")
+                ?.GetMethod("Vote", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            Plugin.DebugLog($"DiTails vote method {(DiTailsVote == null ? "not found" : "found")}");
+        }
 
         [HarmonyTargetMethod]
         private static MethodBase CalculateMethod()

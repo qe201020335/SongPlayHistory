@@ -23,10 +23,8 @@ namespace SongPlayHistory.Installers
             Container.BindInterfacesTo<RecordsManager>().AsSingle();
             Container.BindInterfacesTo<ScoringCacheManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<ExtraCompletionDataManager>().AsSingle();
-            
-            var bsVoting = PluginManager.GetPluginFromId(Plugin.BeatSaverVotingId) != null;
 
-            if (bsVoting)
+            if (Plugin.Instance.BeatSaverVotingInstalled)
             {
                 Plugin.Log.Info("BeatSaverVoting is installed! Binding BeatSaverVotingTracker.");
                 Container.BindInterfacesTo<BeatSaverVotingTracker>().AsSingle();
