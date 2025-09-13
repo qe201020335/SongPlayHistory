@@ -26,6 +26,7 @@
     </Reference>
     <Reference Include="BeatmapCore">
       <Private>False</Private>
+      <Publicize>True</Publicize>
     </Reference>
     <Reference Include="BeatSaber.ViewSystem">
       <Private>False</Private>
