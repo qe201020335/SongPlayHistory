@@ -3,9 +3,9 @@
   "id": "SongPlayHistory",
   "name": "SongPlayHistory",
   "author": "qe201020335",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "A score and vote tracker with simple in-game UI.",
-  "gameVersion": "1.40.0",
+  "gameVersion": "1.40.8",
   "loadBefore": [
     "AccuracyInResults"
   ],
