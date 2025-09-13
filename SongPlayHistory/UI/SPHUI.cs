@@ -162,14 +162,15 @@ namespace SongPlayHistory.UI
             if (beatmap == null) return;
             _logger.Info("Updating SPH UI");
             _logger.Debug($"{beatmap.songName} {beatmapKey.beatmapCharacteristic.serializedName} {beatmapKey.difficulty}");
-            
-            SetStats(beatmapKey);
+
+            var records = _recordsManager.GetRecords(beatmapKey);
+            SetStats(beatmapKey, records.Count);
 
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
-            Task.Run(() => GetRecordsText(beatmapKey, beatmap, token), token)
+            Task.Run(() => GetRecordsText(beatmapKey, beatmap, records, token), token)
                 .ContinueWith(task =>
                 {
                     if (task.IsFaulted && task.Exception != null)
@@ -184,7 +185,7 @@ namespace SongPlayHistory.UI
                 }, CancellationToken.None, TaskContinuationOptions.NotOnCanceled, UnityMainThreadTaskScheduler.Default);
         }
         
-        private async Task<string> GetRecordsText(BeatmapKey beatmapKey, BeatmapLevel beatmap, CancellationToken cancellationToken)
+        private async Task<string> GetRecordsText(BeatmapKey beatmapKey, BeatmapLevel beatmap, IEnumerable<ISongPlayRecord> records, CancellationToken cancellationToken)
         {
             _logger.Debug($"Preparing records text from Thread {Environment.CurrentManagedThreadId}");
             
@@ -193,8 +194,8 @@ namespace SongPlayHistory.UI
            
             var config = PluginConfig.Instance;
             var key = new LevelMapKey(beatmapKey);
-            var records =
-                from record in _recordsManager.GetRecords(key)
+            records =
+                from record in records
                 where config.ShowFailed || record.LevelEnd == LevelEndType.Cleared
                 select record;
             
@@ -294,11 +295,12 @@ namespace SongPlayHistory.UI
             return builder.ToString();
         }
 
-        private void SetStats(BeatmapKey beatmap)
+        private void SetStats(BeatmapKey beatmap, int sphPlayCount)
         {
             var playCount = _playerDataModel.playerData.levelsStatsData.TryGetValue(beatmap, out var data)
-                ? data.playCount
-                : 0;
+                            && data.validScore
+                ? Math.Max(data.playCount, sphPlayCount)
+                : sphPlayCount;
             _playCount!.text = playCount.ToString();
         }
     }

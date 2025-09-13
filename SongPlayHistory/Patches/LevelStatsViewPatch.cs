@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using System;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using IPA.Utilities.Async;
 using SiraUtil.Affinity;
@@ -12,13 +14,15 @@ internal class LevelStatsViewPatch : IAffinity
 {
     private readonly SiraLog _logger;
     private readonly IScoringCacheManager _scoringCacheManager;
+    private readonly IRecordManager _recordManager;
 
     private CancellationTokenSource _cts = new CancellationTokenSource();
 
-    public LevelStatsViewPatch(SiraLog logger, IScoringCacheManager scoringCacheManager)
+    public LevelStatsViewPatch(SiraLog logger, IScoringCacheManager scoringCacheManager, IRecordManager recordManager)
     {
         _logger = logger;
         _scoringCacheManager = scoringCacheManager;
+        _recordManager = recordManager;
     }
 
     [AffinityPostfix]
@@ -29,8 +33,16 @@ internal class LevelStatsViewPatch : IAffinity
         _cts.Dispose();
         _cts = new CancellationTokenSource();
 
-        var highScore = playerLevelStats.highScore;
+        var highScore = playerLevelStats.validScore ? playerLevelStats.highScore : 0;
         var beatmapKey = playerLevelStats.GetBeatmapKey();
+        
+        var records = _recordManager.GetRecords(beatmapKey);
+        if (records.Count > 0)
+        {
+            var sphHighScore = records.Max(record => record.ModifiedScore);
+            highScore = Math.Max(playerLevelStats.highScore, sphHighScore);
+            __instance._highScoreText.text = highScore.ToString();
+        }
 
         if (highScore > 0) ShowScorePercentage(__instance._highScoreText, beatmapKey, highScore, _cts.Token);
     }
