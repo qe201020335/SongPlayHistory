@@ -135,6 +135,7 @@
   <ItemGroup>
     <None Include="Directory.Build.props" Condition="Exists('Directory.Build.props')" />
     <None Include="SongPlayHistory.csproj.user" Condition="Exists('SongPlayHistory.csproj.user')" />
+    <None Include="$(BeatSaberDir)\Logs\_latest.log" Condition="Exists('$(BeatSaberDir)\Logs\_latest.log')" />
   </ItemGroup>
 
   <ItemGroup>
