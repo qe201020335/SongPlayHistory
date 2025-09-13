@@ -38,9 +38,9 @@ namespace SongPlayHistory.UI
         
         private readonly StandardLevelDetailViewController _levelDetailViewController;
         
-        private readonly HoverHint _hoverHint;
+        private readonly HoverHint? _hoverHint;
 
-        private readonly TMP_Text _playCount;
+        private readonly TMP_Text? _playCount;
         
         private CancellationTokenSource? _cts;
 
@@ -118,6 +118,8 @@ namespace SongPlayHistory.UI
         
         public void Initialize()
         {
+            if (_hoverHint == null || _playCount == null) return;
+            
             _levelDetailViewController.didChangeDifficultyBeatmapEvent -= OnDifficultyChanged;
             _levelDetailViewController.didChangeDifficultyBeatmapEvent += OnDifficultyChanged;
             _levelDetailViewController.didChangeContentEvent -= OnContentChanged;
@@ -177,7 +179,7 @@ namespace SongPlayHistory.UI
                     }
                     else
                     {
-                        _hoverHint.text = task.Result; // update the hover hint ui on the main thread
+                        _hoverHint!.text = task.Result; // update the hover hint ui on the main thread
                     }
                 }, CancellationToken.None, TaskContinuationOptions.NotOnCanceled, UnityMainThreadTaskScheduler.Default);
         }
@@ -297,7 +299,7 @@ namespace SongPlayHistory.UI
             var playCount = _playerDataModel.playerData.levelsStatsData.TryGetValue(beatmap, out var data)
                 ? data.playCount
                 : 0;
-            _playCount.text = playCount.ToString();
+            _playCount!.text = playCount.ToString();
         }
     }
 }
