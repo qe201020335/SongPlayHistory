@@ -2,6 +2,7 @@
 using SiraUtil.Logging;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.SongPlayTracking;
+using TMPro;
 using Zenject;
 
 namespace SongPlayHistory.Patches;
@@ -75,7 +76,7 @@ internal class ResultsViewControllerPatch : IAffinity
         _logger.Debug("Previous high score: " + previousHighScore);
 
         __instance._rankText.autoSizeTextContainer = false;
-        __instance._rankText.enableWordWrapping = false;
+        __instance._rankText.textWrappingMode = TextWrappingModes.NoWrap;
 
         if (previousHighScore <= 0)
         {
