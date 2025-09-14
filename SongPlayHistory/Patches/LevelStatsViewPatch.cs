@@ -55,8 +55,8 @@ internal class LevelStatsViewPatch : IAffinity
             {
                 if (task.IsFaulted && task.Exception != null)
                 {
-                    _logger.Warn($"Failed to show percentage for high score.");
-                    _logger.Debug(task.Exception);
+                    _logger.Warn("Failed to show percentage for high score.");
+                    _logger.Warn(task.Exception);
                     return;
                 }
 

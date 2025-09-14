@@ -176,7 +176,7 @@ namespace SongPlayHistory.UI
                     if (task.IsFaulted && task.Exception != null)
                     {
                         _logger.Error($"Failed to update SPH ui: {task.Exception.Message}");
-                        _logger.Debug(task.Exception);
+                        _logger.Error(task.Exception);
                     }
                     else
                     {
