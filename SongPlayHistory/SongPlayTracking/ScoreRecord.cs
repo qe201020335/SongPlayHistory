@@ -1,5 +1,8 @@
-﻿namespace SongPlayHistory.SongPlayTracking;
+﻿using JetBrains.Annotations;
 
+namespace SongPlayHistory.SongPlayTracking;
+
+[PublicAPI]
 public readonly struct ScoreRecord
 {
     public readonly int MaxRawScore;

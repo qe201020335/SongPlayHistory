@@ -1,8 +1,10 @@
 ﻿using System;
+using JetBrains.Annotations;
 using SongPlayHistory.Model;
 
 namespace SongPlayHistory.SongPlayData;
 
+[PublicAPI]
 public interface ISongPlayRecord
 {
     public DateTime LocalTime { get; }

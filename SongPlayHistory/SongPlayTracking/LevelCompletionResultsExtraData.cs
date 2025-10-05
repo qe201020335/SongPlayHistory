@@ -1,5 +1,8 @@
-﻿namespace SongPlayHistory.SongPlayTracking;
+﻿using JetBrains.Annotations;
 
+namespace SongPlayHistory.SongPlayTracking;
+
+[PublicAPI]
 public class LevelCompletionResultsExtraData
 {
     public GameplayCoreSceneSetupData SceneSetupData { get; }

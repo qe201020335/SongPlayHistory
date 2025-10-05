@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace SongPlayHistory.SongPlayTracking;
 
@@ -11,6 +12,7 @@ public class ExtraCompletionDataManager
         _resultTable.Add(results, extraData);
     }
     
+    [PublicAPI]
     public LevelCompletionResultsExtraData? GetExtraData(LevelCompletionResults results)
     {
         return _resultTable.TryGetValue(results, out var extraData) ? extraData : null;
