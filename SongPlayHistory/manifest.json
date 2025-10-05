@@ -6,21 +6,15 @@
   "version": "2.3.0",
   "description": "A score and vote tracker with simple in-game UI.",
   "gameVersion": "1.40.12",
-  "loadBefore": [
-    "AccuracyInResults"
-  ],
   "loadAfter": [
     "BeatLeader",
     "BeatSaverVoting",
     "DiTails",
     "MappingExtensions",
-    "MultiplayerInfo",
     "ScoreSaber"
   ],
   "conflictsWith": {
-    "AccuracyInResults": "*",
-    "SongPlayHistoryContinued": "*",
-    "ScorePercentage": "*"
+    "SongPlayHistoryContinued": "*"
   },
   "dependsOn": {
     "BSIPA": "^4.3.6",

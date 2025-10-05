@@ -23,9 +23,6 @@ namespace SongPlayHistory.SongPlayData
         [Inject]
         private readonly SiraLog _logger = null!;
 
-        [Inject]
-        private readonly PluginConfig _config = null!;
-
         public void Initialize()
         {
             // We don't anymore support migrating old records from a config file.
@@ -58,10 +55,7 @@ namespace SongPlayHistory.SongPlayData
             
             // TODO remove bad records?
             
-            if (_config.EnableSongPlayHistory)
-            {
-                SongPlayTracker.StandardMultiLevelDidFinish += OnStandardMultiLevelFinished;
-            }
+            SongPlayTracker.StandardMultiLevelDidFinish += OnStandardMultiLevelFinished;
         }
 
         private bool LoadRecords(string path, out ConcurrentDictionary<string, IList<Record>> records)
