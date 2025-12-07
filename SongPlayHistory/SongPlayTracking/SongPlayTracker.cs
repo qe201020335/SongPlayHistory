@@ -86,7 +86,7 @@ internal class SongPlayTracker : IInitializable, IDisposable
             return;
         }
 
-        HandleLevelFinished(results, false, data.gameMode.Equals("Party", StringComparison.OrdinalIgnoreCase));
+        HandleLevelFinished(results, false, data.gameMode?.Equals("Party", StringComparison.OrdinalIgnoreCase) == true);
     }
 
     private void OnMultiplayerLevelDidFinish(MultiplayerLevelCompletionResults? results)

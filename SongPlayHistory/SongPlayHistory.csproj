@@ -28,6 +28,7 @@
       <Private>False</Private>
       <Publicize>True</Publicize>
     </Reference>
+    <Reference Include="BeatSaber.Multiplayer.Core" Private="false" />
     <Reference Include="BeatSaber.ViewSystem">
       <Private>False</Private>
     </Reference>
