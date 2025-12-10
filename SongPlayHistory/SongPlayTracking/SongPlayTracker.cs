@@ -2,19 +2,21 @@
 using BS_Utils.Gameplay;
 using SiraUtil.Logging;
 using SiraUtil.Submissions;
+using SongPlayHistory.SongPlayData;
 using Zenject;
 
 namespace SongPlayHistory.SongPlayTracking;
 
 internal class SongPlayTracker : IInitializable, IDisposable
 {
-    public static event Action<LevelCompletionResults, LevelCompletionResultsExtraData>? StandardMultiLevelDidFinish;
-
     [Inject]
     private readonly SiraLog _logger = null!;
 
     [Inject]
     private readonly ScoreTracker _scoreTracker = null!;
+    
+    [Inject]
+    private readonly IRecordManager _recordManager = null!;
 
     [Inject]
     private readonly ExtraCompletionDataManager _extraCompletionDataManager = null!;
@@ -124,17 +126,7 @@ internal class SongPlayTracker : IInitializable, IDisposable
 
         _extraCompletionDataManager.AddExtraData(results, extraData);
 
-        var e = StandardMultiLevelDidFinish;
-
-        try
-        {
-            e?.Invoke(results, extraData);
-        }
-        catch (Exception exception)
-        {
-            _logger.Error("Exception caught while emitting level did finish event.");
-            _logger.Error(exception);
-        }
+        _recordManager.SaveRecord(results, extraData);
     }
     
     private static PlayerLevelStatsData? CopyLevelStatsData(PlayerLevelStatsData? data)

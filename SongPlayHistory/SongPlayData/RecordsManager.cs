@@ -54,8 +54,6 @@ namespace SongPlayHistory.SongPlayData
             _logger.Info($"Loaded {SumRecords(Records)} records from {Records.Count} levels.");
             
             // TODO remove bad records?
-            
-            SongPlayTracker.StandardMultiLevelDidFinish += OnStandardMultiLevelFinished;
         }
 
         private bool LoadRecords(string path, out ConcurrentDictionary<string, IList<Record>> records)
@@ -87,38 +85,8 @@ namespace SongPlayHistory.SongPlayData
 
         public void Dispose()
         {
-            SongPlayTracker.StandardMultiLevelDidFinish -= OnStandardMultiLevelFinished;
             SaveRecordsToFile();
             BackupRecords();
-        }
-
-        private void OnStandardMultiLevelFinished(LevelCompletionResults? results, LevelCompletionResultsExtraData? extraData)
-        {
-            if (results == null || extraData == null)
-            {
-                _logger.Warn("CompletionResults or extra data is null.");  // really shouldn't happen
-                return;
-            }
-            
-            if (extraData.IsPractice || extraData.IsParty)
-            {
-                _logger.Info("It was in practice or party mode, ignored.");
-                return;
-            }
-            
-            if (results.multipliedScore <= 0)
-            {
-                _logger.Warn("Record ignored, score is 0.");
-                return;
-            }
-
-            // Cancelled.
-            if (results.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete)
-            {
-                return;
-            }
-
-            SaveRecord(results, extraData);            
         }
 
         public IList<ISongPlayRecord> GetRecords(BeatmapKey beatmap)
@@ -135,12 +103,30 @@ namespace SongPlayHistory.SongPlayData
             return new List<ISongPlayRecord>();
         }
 
-        private void SaveRecord(LevelCompletionResults result, LevelCompletionResultsExtraData extraData)
+        public void SaveRecord(LevelCompletionResults result, LevelCompletionResultsExtraData extraData)
         {
             var beatmapKey = extraData.SceneSetupData.beatmapKey;
             if (!beatmapKey.IsValid())
             {
                 _logger.Warn("Invalid BeatmapKey, not saving record.");
+                return;
+            }
+            
+            if (extraData.IsPractice || extraData.IsParty)
+            {
+                _logger.Info("It was in practice or party mode, ignored.");
+                return;
+            }
+            
+            if (result.multipliedScore <= 0)
+            {
+                _logger.Warn("Record ignored, score is 0.");
+                return;
+            }
+
+            // Cancelled.
+            if (result.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete)
+            {
                 return;
             }
             
