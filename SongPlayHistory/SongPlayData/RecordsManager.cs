@@ -124,11 +124,6 @@ namespace SongPlayHistory.SongPlayData
         public IList<ISongPlayRecord> GetRecords(BeatmapKey beatmap)
         {
             var key = new LevelMapKey(beatmap);
-            return GetRecords(key);
-        }
-        
-        public IList<ISongPlayRecord> GetRecords(LevelMapKey key)
-        {
             _logger.Debug($"Getting records for {key}");
             if (Records.TryGetValue(key.ToOldKey(), out var records))
             {
