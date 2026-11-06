@@ -3,7 +3,7 @@
   "id": "SongPlayHistory",
   "name": "SongPlayHistory",
   "author": "qe201020335",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "A score tracker with simple in-game UI.",
   "gameVersion": "1.41.1",
   "loadAfter": [
