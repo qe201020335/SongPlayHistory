@@ -25,6 +25,7 @@ namespace SongPlayHistory
         private const string BeatSaverVotingId = "BeatSaverVoting";
         private const string DiTailsId = "DiTails";
         private const string MappingExtensionsId = "MappingExtensions";
+        private const string NoodleExtensionsId = "NoodleExtensions";
         private const string ScoreSaberId = "ScoreSaber";
         private const string BeatLeaderId = "BeatLeader";
         
@@ -35,6 +36,7 @@ namespace SongPlayHistory
 
         internal bool BeatSaverVotingInstalled { get; }
         internal bool MappingExtensionsInstalled { get; }
+        internal bool NoodleExtensionsInstalled { get; }
 
         internal PluginMetadata? SSMetadata { get; }
         internal PluginMetadata? BLMetadata { get; }
@@ -52,6 +54,7 @@ namespace SongPlayHistory
 
             BeatSaverVotingInstalled = PluginManager.EnabledPlugins.Any(metadata => metadata.Id == BeatSaverVotingId);
             MappingExtensionsInstalled = PluginManager.EnabledPlugins.Any(metadata => metadata.Id == MappingExtensionsId);
+            NoodleExtensionsInstalled = PluginManager.EnabledPlugins.Any(metadata => metadata.Id == NoodleExtensionsId);
             SSMetadata = PluginManager.GetPluginFromId(ScoreSaberId);
             BLMetadata = PluginManager.GetPluginFromId(BeatLeaderId);
             DiTailsMetadata =  PluginManager.GetPluginFromId(DiTailsId);

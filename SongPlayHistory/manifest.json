@@ -11,6 +11,7 @@
     "BeatSaverVoting",
     "DiTails",
     "MappingExtensions",
+    "NoodleExtensions",
     "ScoreSaber"
   ],
   "conflictsWith": {
