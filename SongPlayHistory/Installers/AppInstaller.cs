@@ -1,8 +1,6 @@
-using IPA.Loader;
 using SongPlayHistory.Configuration;
 using SongPlayHistory.SongPlayData;
 using SongPlayHistory.SongPlayTracking;
-using SongPlayHistory.VoteTracker;
 using Zenject;
 
 namespace SongPlayHistory.Installers
@@ -23,17 +21,6 @@ namespace SongPlayHistory.Installers
             Container.BindInterfacesTo<RecordsManager>().AsSingle();
             Container.BindInterfacesTo<ScoringCacheManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<ExtraCompletionDataManager>().AsSingle();
-
-            if (Plugin.Instance.BeatSaverVotingInstalled)
-            {
-                Plugin.Log.Info("BeatSaverVoting is installed! Binding BeatSaverVotingTracker.");
-                Container.BindInterfacesTo<BeatSaverVotingTracker>().AsSingle();
-            }
-            else
-            {
-                Plugin.Log.Info("BeatSaverVoting is NOT installed! Binding InternalVoteTracker.");
-                Container.BindInterfacesTo<InternalVoteTracker>().AsSingle();
-            }
         }
     }
 }

@@ -2,5 +2,4 @@
   <bool-setting text='Show Failed' value='show-failed' hover-hint='Display failed records'/>
   <bool-setting text='Average Accuracy' value='average-accuracy' hover-hint='Exclude remaining notes when evaluating accuracy'/>
   <bool-setting text='Sort by Date' value='sort-by-date' hover-hint='Latest records (otherwise best records) on the top'/>
-  <bool-setting text='Show Up/Downvotes' value='show-votes' hover-hint='Display like and dislike icons in the song list'/>
 </settings-container>

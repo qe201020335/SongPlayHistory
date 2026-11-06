@@ -4,12 +4,10 @@
   "name": "SongPlayHistory",
   "author": "qe201020335",
   "version": "2.3.0",
-  "description": "A score and vote tracker with simple in-game UI.",
+  "description": "A score tracker with simple in-game UI.",
   "gameVersion": "1.41.1",
   "loadAfter": [
     "BeatLeader",
-    "BeatSaverVoting",
-    "DiTails",
     "MappingExtensions",
     "NoodleExtensions",
     "ScoreSaber"

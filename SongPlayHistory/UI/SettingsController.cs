@@ -25,12 +25,5 @@ namespace SongPlayHistory.UI
             get => PluginConfig.Instance.SortByDate;
             set => PluginConfig.Instance.SortByDate = value;
         }
-
-        [UIValue("show-votes")]
-        public bool ShowVotes
-        {
-            get => PluginConfig.Instance.ShowVotes;
-            set => PluginConfig.Instance.ShowVotes = value;
-        }
     }
 }

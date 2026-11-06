@@ -32,10 +32,6 @@
     <Reference Include="BeatSaber.ViewSystem">
       <Private>False</Private>
     </Reference>
-    <Reference Include="BeatSaverVoting" HintPath="$(BeatSaberDir)\Plugins\BeatSaverVoting.dll">
-      <Publicize>True</Publicize>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="BGLib.AppFlow">
       <Private>False</Private>
     </Reference>
@@ -98,9 +94,6 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.ImageConversionModule">
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
